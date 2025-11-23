@@ -30,22 +30,8 @@ export default function Home() {
   if (showEditor) {
     return (
       <div className="min-h-screen bg-gray-900 overflow-hidden">
-        <div className="fixed top-4 right-4 z-10000 flex gap-2 pointer-events-auto">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowEditor(false);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-colors cursor-pointer"
-          >
-            Back to Game
-          </button>
-        </div>
         <div className="w-full h-screen">
-          <WorldEditor />
+          <WorldEditor onBackToGame={() => setShowEditor(false)} />
         </div>
       </div>
     );

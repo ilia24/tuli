@@ -22,6 +22,7 @@ export default function PhaserGame() {
         this.currentDirection = 'front';
         this.currentWorld = null;
         this.tileSize = 16;
+        this.currentMoveTween = null; // Track current movement tween
       }
 
       preload() {
@@ -60,9 +61,9 @@ export default function PhaserGame() {
         // Load the world configuration
         this.currentWorld = getWorld('tutorial');
 
-        // Create background (dirt)
+        // Create background (blue)
         const background = this.add.graphics();
-        background.fillStyle(0x8B7355, 1); // Dirt brown
+        background.fillStyle(0x2594D0, 1); // RGB(37, 148, 208)
         background.fillRect(0, 0, width, height);
 
         // Build world from configuration
@@ -158,7 +159,7 @@ export default function PhaserGame() {
             for (let x = 0; x < this.currentWorld.width; x++) {
               const tileIndex = layer.tiles[y][x];
               
-              // Skip null/empty tiles
+              // Skip only null/undefined
               if (tileIndex === null || tileIndex === undefined) continue;
               
               const tileX = this.worldOffsetX + (x * this.tileSize);
@@ -211,6 +212,15 @@ export default function PhaserGame() {
           return;
         }
         
+        // Stop any existing movement tween
+        if (this.currentMoveTween) {
+          this.currentMoveTween.stop();
+          this.currentMoveTween = null;
+        }
+        
+        // Stop all tweens on player to prevent warping
+        this.tweens.killTweensOf(this.playerSprites);
+        
         // Update player direction based on movement
         this.updatePlayerDirection(targetX, targetY);
         
@@ -238,7 +248,7 @@ export default function PhaserGame() {
         const duration = (distance / speed) * 1000;
 
         // Move player to target
-        this.tweens.add({
+        this.currentMoveTween = this.tweens.add({
           targets: this.playerSprites,
           x: targetX,
           y: targetY,
@@ -249,6 +259,7 @@ export default function PhaserGame() {
           },
           onComplete: () => {
             this.isMoving = false;
+            this.currentMoveTween = null;
           }
         });
       }
