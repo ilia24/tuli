@@ -1,0 +1,22 @@
+{
+  "welcome": {
+    "title": "Bem-vindo ao Tuli!",
+    "firstNameLabel": "Qual é o seu primeiro nome?",
+    "firstNamePlaceholder": "Primeiro nome",
+    "lastNameLabel": "Qual é o seu sobrenome?",
+    "lastNamePlaceholder": "Sobrenome",
+    "languageLabel": "Escolha seu idioma",
+    "startButton": "Vamos jogar!"
+  },
+  "languages": {
+    "en": "Inglês",
+    "ro": "Romeno",
+    "pt": "Português",
+    "es": "Espanhol"
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Ops! Algo deu errado"
+  }
+}
+

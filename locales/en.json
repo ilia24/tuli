@@ -1,0 +1,22 @@
+{
+  "welcome": {
+    "title": "Welcome to Tuli!",
+    "firstNameLabel": "What's your first name?",
+    "firstNamePlaceholder": "First name",
+    "lastNameLabel": "What's your last name?",
+    "lastNamePlaceholder": "Last name",
+    "languageLabel": "Choose your language",
+    "startButton": "Let's Play!"
+  },
+  "languages": {
+    "en": "English",
+    "ro": "Romanian",
+    "pt": "Portuguese",
+    "es": "Spanish"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Oops! Something went wrong"
+  }
+}
+

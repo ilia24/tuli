@@ -1,0 +1,22 @@
+{
+  "welcome": {
+    "title": "Bun venit la Tuli!",
+    "firstNameLabel": "Care este prenumele tău?",
+    "firstNamePlaceholder": "Prenume",
+    "lastNameLabel": "Care este numele tău de familie?",
+    "lastNamePlaceholder": "Nume de familie",
+    "languageLabel": "Alege limba ta",
+    "startButton": "Hai să jucăm!"
+  },
+  "languages": {
+    "en": "Engleză",
+    "ro": "Română",
+    "pt": "Portugheză",
+    "es": "Spaniolă"
+  },
+  "common": {
+    "loading": "Se încarcă...",
+    "error": "Hopa! Ceva nu a mers bine"
+  }
+}
+
