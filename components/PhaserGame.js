@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { getWorld, isTileWalkable } from '../lib/worldConfig';
 
 export default function PhaserGame() {
   const gameRef = useRef(null);
   const phaserGameRef = useRef(null);
+  const [showTuliChat, setShowTuliChat] = useState(false);
 
   useEffect(() => {
     if (phaserGameRef.current || !gameRef.current) return;
+    
+    // Make chat modal control available to Phaser
+    window.openTuliChat = () => setShowTuliChat(true);
 
     // Main game scene
     class IslandScene extends Phaser.Scene {
@@ -17,6 +21,7 @@ export default function PhaserGame() {
         super({ key: 'IslandScene' });
         this.player = null;
         this.playerSprites = null; // Container for 4-tile player
+        this.followerSprite = null; // Follower character
         this.targetMarker = null;
         this.isMoving = false;
         this.currentDirection = 'front';
@@ -24,6 +29,9 @@ export default function PhaserGame() {
         this.tileSize = 16;
         this.currentMoveTween = null; // Track current movement tween
         this.walkAnimationTimer = null; // Timer for walk animation
+        this.followerMoveTween = null; // Track follower movement
+        this.playerPathHistory = []; // Track player positions for follower
+        this.clickedOnTuli = false; // Flag to prevent movement when clicking Tuli
       }
 
       preload() {
@@ -54,6 +62,18 @@ export default function PhaserGame() {
         this.load.image('player-right-step', '/spritesheets/player/right-step.png');
         this.load.image('player-left-step', '/spritesheets/player/left-step.png');
         this.load.image('player-back-step', '/spritesheets/player/back-step.png');
+        
+        // Follower character (Tuli mascot) - standing poses
+        this.load.image('follower-front-stand', '/spritesheets/tuli/front-stand.png');
+        this.load.image('follower-left-stand', '/spritesheets/tuli/left-stand.png');
+        this.load.image('follower-right-stand', '/spritesheets/tuli/right-stand.png');
+        this.load.image('follower-back-stand', '/spritesheets/tuli/back-stand.png');
+        
+        // Follower walking poses
+        this.load.image('follower-front-walk', '/spritesheets/tuli/front-walk.png');
+        this.load.image('follower-left-walk', '/spritesheets/tuli/left-walk.png');
+        this.load.image('follower-right-walk', '/spritesheets/tuli/right-walk.png');
+        this.load.image('follower-back-walk', '/spritesheets/tuli/back-step.png');
       }
 
       create() {
@@ -74,6 +94,18 @@ export default function PhaserGame() {
         this.textures.get('player-right-step').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('player-left-step').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('player-back-step').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        
+        // Set texture filtering for follower standing
+        this.textures.get('follower-front-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('follower-left-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('follower-right-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('follower-back-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        
+        // Set texture filtering for follower walking
+        this.textures.get('follower-front-walk').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('follower-left-walk').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('follower-right-walk').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('follower-back-walk').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
         // Load the world configuration
         this.currentWorld = getWorld('tutorial');
@@ -92,6 +124,9 @@ export default function PhaserGame() {
         const spawnX = this.worldOffsetX + (this.currentWorld.spawnPoint.x * this.tileSize);
         const spawnY = this.worldOffsetY + (this.currentWorld.spawnPoint.y * this.tileSize);
         this.createPlayer(spawnX, spawnY);
+        
+        // Create follower character slightly behind player
+        this.createFollower(spawnX - 32, spawnY);
 
         // Create target marker (initially hidden)
         this.targetMarker = this.add.circle(0, 0, 8, 0xFFFF00, 0);
@@ -100,6 +135,12 @@ export default function PhaserGame() {
 
         // Enable click/tap to move
         this.input.on('pointerdown', (pointer) => {
+          // Don't move if we just clicked on Tuli
+          if (this.clickedOnTuli) {
+            this.clickedOnTuli = false; // Reset flag
+            return;
+          }
+          
           // Use worldX and worldY to account for camera movement
           this.movePlayerTo(pointer.worldX, pointer.worldY);
         });
@@ -118,6 +159,45 @@ export default function PhaserGame() {
         // Store current sprite key for direction changes
         this.playerSprites.currentSpriteKey = 'player-front-stand';
         this.playerSprites.isAnimating = false;
+        
+        // Initialize path history with starting position
+        this.playerPathHistory.push({ x, y });
+      }
+
+      createFollower(x, y) {
+        // Create follower sprite (Tuli mascot)
+        this.followerSprite = this.add.image(x, y, 'follower-front-stand');
+        this.followerSprite.setScale(0.4);
+        this.followerSprite.setDepth(99); // Just behind player
+        
+        this.followerSprite.currentSpriteKey = 'follower-front-stand';
+        this.followerSprite.currentDirection = 'front';
+        this.followerSprite.isAnimating = false;
+        this.followerWalkAnimationTimer = null;
+        
+        // Make Tuli clickable
+        this.followerSprite.setInteractive();
+        
+        // Add hover effect
+        this.followerSprite.on('pointerover', () => {
+          this.followerSprite.setTint(0xffff99); // Slight yellow tint on hover
+        });
+        
+        this.followerSprite.on('pointerout', () => {
+          this.followerSprite.clearTint();
+        });
+        
+        // Click to open chat
+        this.followerSprite.on('pointerdown', (pointer) => {
+          if (pointer.leftButtonDown()) {
+            // Set flag to prevent movement
+            this.clickedOnTuli = true;
+            
+            if (window.openTuliChat) {
+              window.openTuliChat();
+            }
+          }
+        });
       }
 
       updatePlayerDirection(targetX, targetY, isMoving = false) {
@@ -269,7 +349,6 @@ export default function PhaserGame() {
       movePlayerTo(targetX, targetY) {
         // Check if target position is walkable
         if (!this.isPositionWalkable(targetX, targetY)) {
-          console.log('Cannot walk there - tile is not walkable');
           return;
         }
         
@@ -329,7 +408,157 @@ export default function PhaserGame() {
       }
 
       update() {
-        // Future: Add walking animation, update sprite direction, etc.
+        // Update player path history for follower
+        if (this.playerSprites && this.followerSprite) {
+          const currentPlayerPos = { x: this.playerSprites.x, y: this.playerSprites.y };
+          const lastHistoryPos = this.playerPathHistory[this.playerPathHistory.length - 1];
+          
+          // Only add to history if player has moved significantly
+          const distance = Phaser.Math.Distance.Between(
+            currentPlayerPos.x, 
+            currentPlayerPos.y,
+            lastHistoryPos.x,
+            lastHistoryPos.y
+          );
+          
+          if (distance > 8) { // Update every 8 pixels
+            this.playerPathHistory.push(currentPlayerPos);
+            
+            // Keep history to a reasonable size (last 50 positions)
+            if (this.playerPathHistory.length > 50) {
+              this.playerPathHistory.shift();
+            }
+            
+            // Make follower move to an earlier position in the path
+            this.updateFollowerPosition();
+          }
+        }
+      }
+
+      updateFollowerPosition() {
+        // Follower follows a position in the history (trailing behind player)
+        const followDistance = 5; // Follow 5 positions behind
+        const targetIndex = Math.max(0, this.playerPathHistory.length - followDistance);
+        const targetPos = this.playerPathHistory[targetIndex];
+        
+        if (!targetPos) return;
+        
+        // Calculate distance to target
+        const distance = Phaser.Math.Distance.Between(
+          this.followerSprite.x,
+          this.followerSprite.y,
+          targetPos.x,
+          targetPos.y
+        );
+        
+        // Only move if far enough away
+        if (distance > 5) {
+          // Update follower direction based on movement
+          const dx = targetPos.x - this.followerSprite.x;
+          const dy = targetPos.y - this.followerSprite.y;
+          
+          let newDirection = this.followerSprite.currentDirection;
+          if (Math.abs(dx) > Math.abs(dy)) {
+            newDirection = dx > 0 ? 'right' : 'left';
+          } else {
+            newDirection = dy > 0 ? 'front' : 'back';
+          }
+          
+          // Update direction and animation if changed
+          const directionChanged = newDirection !== this.followerSprite.currentDirection;
+          
+          if (directionChanged) {
+            this.followerSprite.currentDirection = newDirection;
+            // Restart animation with new direction
+            this.startFollowerWalkAnimation(newDirection);
+          } else if (!this.followerSprite.isAnimating) {
+            // Start animation if not already running
+            this.startFollowerWalkAnimation(newDirection);
+          }
+          
+          // Cancel existing follower tween
+          if (this.followerMoveTween) {
+            this.followerMoveTween.stop();
+          }
+          
+          // Move follower smoothly
+          const speed = 120; // Slightly faster than player to catch up
+          const duration = (distance / speed) * 1000;
+          
+          this.followerMoveTween = this.tweens.add({
+            targets: this.followerSprite,
+            x: targetPos.x,
+            y: targetPos.y,
+            duration: duration,
+            ease: 'Linear',
+            onComplete: () => {
+              // Stop walking animation when follower reaches destination
+              this.stopFollowerWalkAnimation();
+            }
+          });
+        } else {
+          // Not moving far, stop walk animation
+          this.stopFollowerWalkAnimation();
+        }
+      }
+
+      startFollowerWalkAnimation(direction) {
+        const standKey = `follower-${direction}-stand`;
+        const walkKey = `follower-${direction}-walk`;
+        
+        // Check if walk animation exists for this direction
+        if (!this.textures.exists(walkKey)) {
+          // No walk animation, just show standing
+          if (this.textures.exists(standKey)) {
+            this.followerSprite.setTexture(standKey);
+            this.followerSprite.currentSpriteKey = standKey;
+          }
+          this.followerSprite.isAnimating = false;
+          return;
+        }
+        
+        // Stop existing animation
+        if (this.followerWalkAnimationTimer) {
+          this.followerWalkAnimationTimer.remove();
+          this.followerWalkAnimationTimer = null;
+        }
+        
+        this.followerSprite.isAnimating = true;
+        
+        let currentFrame = 0;
+        const frames = [standKey, walkKey];
+        const frameDelay = 200; // Same as player (200ms per frame)
+        
+        // Set initial frame
+        this.followerSprite.setTexture(frames[0]);
+        this.followerSprite.currentSpriteKey = frames[0];
+        
+        // Alternate between standing and walking
+        this.followerWalkAnimationTimer = this.time.addEvent({
+          delay: frameDelay,
+          callback: () => {
+            currentFrame = (currentFrame + 1) % frames.length;
+            this.followerSprite.setTexture(frames[currentFrame]);
+            this.followerSprite.currentSpriteKey = frames[currentFrame];
+          },
+          loop: true,
+        });
+      }
+
+      stopFollowerWalkAnimation() {
+        if (this.followerWalkAnimationTimer) {
+          this.followerWalkAnimationTimer.remove();
+          this.followerWalkAnimationTimer = null;
+        }
+        
+        this.followerSprite.isAnimating = false;
+        
+        // Show standing pose
+        const standKey = `follower-${this.followerSprite.currentDirection}-stand`;
+        if (this.textures.exists(standKey)) {
+          this.followerSprite.setTexture(standKey);
+          this.followerSprite.currentSpriteKey = standKey;
+        }
       }
     }
 
@@ -358,6 +587,7 @@ export default function PhaserGame() {
 
     // Cleanup on unmount
     return () => {
+      window.openTuliChat = null;
       if (phaserGameRef.current) {
         phaserGameRef.current.destroy(true);
         phaserGameRef.current = null;
@@ -365,6 +595,49 @@ export default function PhaserGame() {
     };
   }, []);
 
-  return <div ref={gameRef} className="w-full h-full" />;
+  return (
+    <>
+      <div ref={gameRef} className="w-full h-full" />
+      
+      {/* Tuli Chat Modal */}
+      {showTuliChat && (
+        <TuliChatModal onClose={() => setShowTuliChat(false)} />
+      )}
+    </>
+  );
+}
+
+function TuliChatModal({ onClose }) {
+  return (
+    <div 
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl p-6 max-w-md w-[90%] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-4 mb-4">
+          <div 
+            className="w-16 h-16 bg-contain bg-no-repeat bg-center shrink-0"
+            style={{ backgroundImage: 'url(/spritesheets/tuli/avatar.png)' }}
+          />
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Tuli says:</h3>
+            <p className="text-gray-700">
+              Hi there! I'm Tuli, your friendly guide! Click around the world to explore and learn new things!
+            </p>
+          </div>
+        </div>
+        
+        <button
+          onClick={onClose}
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
+        >
+          Thanks, Tuli!
+        </button>
+      </div>
+    </div>
+  );
 }
 
