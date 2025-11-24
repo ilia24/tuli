@@ -23,18 +23,12 @@ export default function PhaserGame() {
         this.currentWorld = null;
         this.tileSize = 16;
         this.currentMoveTween = null; // Track current movement tween
+        this.walkAnimationTimer = null; // Timer for walk animation
       }
 
       preload() {
-        // Load sprite sheets (16x16) with spacing/margin if needed
+        // Load sprite sheets (16x16)
         this.load.spritesheet('tileset', '/spritesheets/Tileset_16x16.png', {
-          frameWidth: 16,
-          frameHeight: 16,
-          spacing: 0,  // Space between tiles (if your sheet has it)
-          margin: 0,   // Margin around the sheet
-        });
-        
-        this.load.spritesheet('player-sprite', '/spritesheets/Player.png', {
           frameWidth: 16,
           frameHeight: 16,
           spacing: 0,
@@ -47,6 +41,19 @@ export default function PhaserGame() {
           spacing: 0,
           margin: 0,
         });
+        
+        // Load player sprites (64x64 images for each direction)
+        // Standing poses
+        this.load.image('player-front-stand', '/spritesheets/player/front-standing.png');
+        this.load.image('player-left-stand', '/spritesheets/player/left-standing.png');
+        this.load.image('player-right-stand', '/spritesheets/player/right-standing.png');
+        this.load.image('player-back-stand', '/spritesheets/player/rear-standing.png');
+        
+        // Walking step poses
+        this.load.image('player-front-step', '/spritesheets/player/front-step.png');
+        this.load.image('player-right-step', '/spritesheets/player/right-step.png');
+        this.load.image('player-left-step', '/spritesheets/player/left-step.png');
+        this.load.image('player-back-step', '/spritesheets/player/back-step.png');
       }
 
       create() {
@@ -56,7 +63,17 @@ export default function PhaserGame() {
         // Set texture filtering to NEAREST for pixel-perfect rendering
         this.textures.get('tileset').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('objects').setFilter(Phaser.Textures.FilterMode.NEAREST);
-        this.textures.get('player-sprite').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        // Set texture filtering for standing poses
+        this.textures.get('player-front-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('player-left-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('player-right-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('player-back-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        
+        // Set texture filtering for step poses
+        this.textures.get('player-front-step').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('player-right-step').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('player-left-step').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('player-back-step').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
         // Load the world configuration
         this.currentWorld = getWorld('tutorial');
@@ -93,27 +110,17 @@ export default function PhaserGame() {
       }
 
       createPlayer(x, y) {
-        // Create a container for the 4-tile player sprite
-        this.playerSprites = this.add.container(x, y);
-        
-        // Create the 4 tiles that make up the player (front facing by default)
-        // Player is 2x2 tiles (32x32 pixels total from 16x16 tiles)
-        const topLeft = this.add.image(-8, -8, 'player-sprite', 0);
-        const topRight = this.add.image(8, -8, 'player-sprite', 1);
-        const bottomLeft = this.add.image(-8, 8, 'player-sprite', 8);
-        const bottomRight = this.add.image(8, 8, 'player-sprite', 9);
-        
-        this.playerSprites.add([topLeft, topRight, bottomLeft, bottomRight]);
+        // Create player sprite (64x64 single image)
+        this.playerSprites = this.add.image(x, y, 'player-front-stand');
+        this.playerSprites.setScale(0.4); // Scale down 64x64 to 25.6x25.6
         this.playerSprites.setDepth(100);
         
-        // Store references to individual sprite parts
-        this.playerSprites.topLeft = topLeft;
-        this.playerSprites.topRight = topRight;
-        this.playerSprites.bottomLeft = bottomLeft;
-        this.playerSprites.bottomRight = bottomRight;
+        // Store current sprite key for direction changes
+        this.playerSprites.currentSpriteKey = 'player-front-stand';
+        this.playerSprites.isAnimating = false;
       }
 
-      updatePlayerDirection(targetX, targetY) {
+      updatePlayerDirection(targetX, targetY, isMoving = false) {
         const dx = targetX - this.playerSprites.x;
         const dy = targetY - this.playerSprites.y;
         
@@ -130,24 +137,78 @@ export default function PhaserGame() {
         
         if (newDirection !== this.currentDirection) {
           this.currentDirection = newDirection;
-          this.setPlayerSprites(newDirection);
+        }
+        
+        this.setPlayerSprites(newDirection, isMoving);
+      }
+
+      setPlayerSprites(direction, isMoving = false) {
+        // Get the base sprite key for the direction
+        const baseSprites = {
+          'front': 'player-front',
+          'right': 'player-right',
+          'left': 'player-left',
+          'back': 'player-back',
+        };
+        
+        const baseSpriteKey = baseSprites[direction];
+        const standKey = `${baseSpriteKey}-stand`;
+        const stepKey = `${baseSpriteKey}-step`;
+        
+        // Check if step animation exists
+        const hasStepAnimation = this.textures.exists(stepKey);
+        
+        if (isMoving && hasStepAnimation) {
+          // Always restart animation when direction changes (even if already animating)
+          this.stopWalkAnimation(); // Stop old animation first
+          this.startWalkAnimation(standKey, stepKey); // Start new animation
+        } else {
+          // Stop animation and show standing pose
+          this.stopWalkAnimation();
+          const newSpriteKey = standKey;
+          
+          if (this.playerSprites.currentSpriteKey !== newSpriteKey) {
+            this.playerSprites.setTexture(newSpriteKey);
+            this.playerSprites.currentSpriteKey = newSpriteKey;
+          }
         }
       }
 
-      setPlayerSprites(direction) {
-        // Sprite indices for each direction (top-left, top-right, bottom-left, bottom-right)
-        const sprites = {
-          'front': [0, 1, 8, 9],
-          'right': [2, 3, 10, 11],
-          'left': [4, 5, 12, 13],
-          'back': [6, 7, 14, 15],
-        };
+      startWalkAnimation(standKey, stepKey) {
+        this.playerSprites.isAnimating = true;
         
-        const frames = sprites[direction];
-        this.playerSprites.topLeft.setFrame(frames[0]);
-        this.playerSprites.topRight.setFrame(frames[1]);
-        this.playerSprites.bottomLeft.setFrame(frames[2]);
-        this.playerSprites.bottomRight.setFrame(frames[3]);
+        // Stop any existing animation timer
+        if (this.walkAnimationTimer) {
+          this.walkAnimationTimer.remove();
+        }
+        
+        let currentFrame = 0;
+        const frames = [standKey, stepKey];
+        const frameDelay = 200; // 200ms per frame (5 fps walk cycle)
+        
+        // Set initial frame
+        this.playerSprites.setTexture(frames[0]);
+        this.playerSprites.currentSpriteKey = frames[0];
+        
+        // Alternate between standing and step
+        this.walkAnimationTimer = this.time.addEvent({
+          delay: frameDelay,
+          callback: () => {
+            currentFrame = (currentFrame + 1) % frames.length;
+            this.playerSprites.setTexture(frames[currentFrame]);
+            this.playerSprites.currentSpriteKey = frames[currentFrame];
+          },
+          loop: true,
+        });
+      }
+
+      stopWalkAnimation() {
+        this.playerSprites.isAnimating = false;
+        
+        if (this.walkAnimationTimer) {
+          this.walkAnimationTimer.remove();
+          this.walkAnimationTimer = null;
+        }
       }
 
       createWorldFromLayers() {
@@ -222,7 +283,7 @@ export default function PhaserGame() {
         this.tweens.killTweensOf(this.playerSprites);
         
         // Update player direction based on movement
-        this.updatePlayerDirection(targetX, targetY);
+        this.updatePlayerDirection(targetX, targetY, true);
         
         // Show target marker
         this.targetMarker.setPosition(targetX, targetY);
@@ -260,6 +321,9 @@ export default function PhaserGame() {
           onComplete: () => {
             this.isMoving = false;
             this.currentMoveTween = null;
+            
+            // Stop walk animation and show standing pose
+            this.setPlayerSprites(this.currentDirection, false);
           }
         });
       }
