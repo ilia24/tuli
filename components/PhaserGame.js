@@ -7,11 +7,20 @@ import { getWorld, isTileWalkable, isTileAbovePlayer } from '../lib/worldConfig'
 const ZOOM_FACTOR = 2;
 const CAMERA_BOUNDS_PADDING = 12;
 
+// Sprite sheet tile sizes
+const SPRITE_SHEET_SIZES = {
+  'tileset': 16,
+  'objects': 16,
+  'train': 16,
+  'firecave': 48, // Confirmed 48x48
+};
+
 export default function PhaserGame() {
   const gameRef = useRef(null);
   const phaserGameRef = useRef(null);
   const [showTuliChat, setShowTuliChat] = useState(false);
   const [showGnomeChat, setShowGnomeChat] = useState(false);
+  const [showDragonChat, setShowDragonChat] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('');
 
@@ -21,6 +30,7 @@ export default function PhaserGame() {
     // Make controls available to Phaser
     window.openTuliChat = () => setShowTuliChat(true);
     window.openGnomeChat = () => setShowGnomeChat(true);
+    window.openDragonChat = () => setShowDragonChat(true);
     window.startWorldTransition = (worldName) => {
       setLoadingText(`Loading ${worldName}...`);
       setIsLoading(true);
@@ -78,6 +88,14 @@ export default function PhaserGame() {
           margin: 0,
         });
         
+        // Load firecave with unique key to force cache bust
+        this.load.spritesheet('firecave', '/spritesheets/Firecave_A1.png', {
+          frameWidth: 48,
+          frameHeight: 48,
+          spacing: 0,
+          margin: 0,
+        });
+        
         // Load player sprites (64x64 images for each direction)
         // Standing poses
         this.load.image('player-front-stand', '/spritesheets/player/front-standing.png');
@@ -99,6 +117,8 @@ export default function PhaserGame() {
         
         // NPCs
         this.load.image('gnome', '/spritesheets/gnome.png');
+        this.load.image('dragon-idle', '/spritesheets/dragon-idle.png');
+        this.load.image('dragon-blink', '/spritesheets/dragon-idle-blink.png');
         
         // Follower walking poses
         this.load.image('follower-front-walk', '/spritesheets/tuli/front-walk.png');
@@ -111,10 +131,20 @@ export default function PhaserGame() {
         const width = this.scale.width;
         const height = this.scale.height;
 
+        // Debug: Check firecave texture loading
+        const firecaveTexture = this.textures.get('firecave');
+        const firecaveFrame = firecaveTexture.get(0);
+        const firecaveSource = firecaveTexture.source[0];
+
+        // Test render frame 1 info
+        const frame1 = firecaveTexture.get(1);
+        console.log('Frame 1 cutX:', frame1.cutX, 'cutY:', frame1.cutY, 'cutWidth:', frame1.cutWidth, 'cutHeight:', frame1.cutHeight);
+
         // Set texture filtering to NEAREST for pixel-perfect rendering
         this.textures.get('tileset').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('objects').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('train').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('firecave').setFilter(Phaser.Textures.FilterMode.NEAREST);
         // Set texture filtering for standing poses
         this.textures.get('player-front-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('player-left-stand').setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -141,6 +171,8 @@ export default function PhaserGame() {
         
         // NPCs
         this.textures.get('gnome').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('dragon-idle').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('dragon-blink').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
         // Load the world configuration
         this.currentWorld = getWorld('tutorial');
@@ -223,6 +255,9 @@ export default function PhaserGame() {
         if (this.currentWorldKey === 'tutorial') {
           // Maximillion the Gnome at (39, 48)
           this.createNPC(39, 48, 'gnome', 'openGnomeChat');
+        } else if (this.currentWorldKey === 'lavaWorld') {
+          // Vesuvvy the Dragon at (108, 13)
+          this.createDragon(108, 13);
         }
       }
 
@@ -276,11 +311,73 @@ export default function PhaserGame() {
         this.npcs.push(npc);
       }
 
+      createDragon(gridX, gridY) {
+        const dragonX = this.worldOffsetX + (gridX * this.tileSize);
+        const dragonY = this.worldOffsetY + (gridY * this.tileSize);
+        
+        // Create pulsing glow behind dragon
+        const glow = this.add.circle(dragonX, dragonY, 30, 0xff4400, 0.4);
+        glow.setDepth(97);
+        
+        this.tweens.add({
+          targets: glow,
+          scaleX: 1.3,
+          scaleY: 1.3,
+          alpha: 0.6,
+          duration: 1500,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        
+        const dragon = this.add.image(dragonX, dragonY, 'dragon-idle');
+        dragon.setScale(1.2);
+        dragon.setDepth(98);
+        dragon.setInteractive();
+        
+        this.npcs.push(glow);
+        this.npcs.push(dragon);
+        
+        // Random blink animation
+        const scheduleNextBlink = () => {
+          const delay = Phaser.Math.Between(2000, 5000); // Random 2-5 seconds
+          this.time.delayedCall(delay, () => {
+            // Blink
+            dragon.setTexture('dragon-blink');
+            this.time.delayedCall(150, () => {
+              dragon.setTexture('dragon-idle');
+              scheduleNextBlink();
+            });
+          });
+        };
+        scheduleNextBlink();
+        
+        // Hover effect
+        dragon.on('pointerover', () => {
+          dragon.setTint(0xffaa66);
+        });
+        
+        dragon.on('pointerout', () => {
+          dragon.clearTint();
+        });
+        
+        // Click to open chat
+        dragon.on('pointerdown', (pointer) => {
+          if (pointer.leftButtonDown()) {
+            this.clickedOnTuli = true;
+            
+            if (window.openDragonChat) {
+              window.openDragonChat();
+            }
+          }
+        });
+      }
+
       createPortals() {
         // Create portals based on current world
         if (this.currentWorldKey === 'tutorial') {
           // Portal to Lava World
-          // this.createPortal(28, 25, 'lavaWorld', 'Lava World', 0xff6600, 0xffaa00);
+          this.createPortal(28, 25, 'lavaWorld', 'Lava World', 0xff6600, 0xffaa00);
         } else if (this.currentWorldKey === 'lavaWorld') {
           // Portal back to Tutorial
           this.createPortal(5, 2, 'tutorial', 'Tutorial Island', 0x00ff00, 0x00aa00);
@@ -557,6 +654,21 @@ export default function PhaserGame() {
         this.currentWorld.layers.forEach((layer, layerIndex) => {
           if (!layer.visible) return;
           
+          // Debug sprite sheet info
+          if (layerIndex === 0) {
+            const texture = this.textures.get(layer.spriteSheet);
+            const frames = texture.getFrameNames();
+            console.log(`Layer ${layerIndex} (${layer.name}): sheet=${layer.spriteSheet}, frames=${frames.length}`);
+            
+            // Check first few frames
+            if (frames.length > 0) {
+              const frame0 = texture.get(0);
+              const frame1 = texture.get(1);
+              console.log(`Frame 0:`, frame0.width, 'x', frame0.height);
+              console.log(`Frame 1:`, frame1.width, 'x', frame1.height);
+            }
+          }
+          
           for (let y = 0; y < this.currentWorld.height; y++) {
             for (let x = 0; x < this.currentWorld.width; x++) {
               const tileIndex = layer.tiles[y][x];
@@ -569,6 +681,14 @@ export default function PhaserGame() {
               
               const tile = this.add.image(tileX, tileY, layer.spriteSheet, tileIndex);
               tile.setOrigin(0.5, 0.5);
+              
+              // Scale down to fit 16x16 grid like in WorldEditor
+              const sheetTileSize = SPRITE_SHEET_SIZES[layer.spriteSheet] || 16;
+              if (sheetTileSize !== this.tileSize) {
+                const scaleRatio = this.tileSize / sheetTileSize;
+                tile.setScale(scaleRatio);
+                console.log(`Scaling ${layer.spriteSheet} tile ${tileIndex}: ${sheetTileSize}→${this.tileSize}, scale=${scaleRatio}`);
+              }
               
               // Check if tile should render above player
               const isAbovePlayer = isTileAbovePlayer(this.currentWorld, layerIndex, x, y);
@@ -1127,6 +1247,7 @@ export default function PhaserGame() {
     return () => {
       window.openTuliChat = null;
       window.openGnomeChat = null;
+      window.openDragonChat = null;
       window.startWorldTransition = null;
       window.endWorldTransition = null;
       if (phaserGameRef.current) {
@@ -1166,6 +1287,11 @@ export default function PhaserGame() {
           onClose={() => setShowGnomeChat(false)}
           onTravel={handleTravelToLavaWorld}
         />
+      )}
+      
+      {/* Vesuvvy Chat Modal */}
+      {showDragonChat && (
+        <DragonChatModal onClose={() => setShowDragonChat(false)} />
       )}
     </>
   );
@@ -1242,6 +1368,40 @@ function GnomeChatModal({ onClose, onTravel }) {
             Not now
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DragonChatModal({ onClose }) {
+  return (
+    <div 
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl p-6 max-w-md w-[90%] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-4 mb-4">
+          <div 
+            className="w-24 h-24 bg-contain bg-no-repeat bg-center shrink-0"
+            style={{ backgroundImage: 'url(/spritesheets/dragon-idle.png)' }}
+          />
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-orange-700 mb-2">Vesuvvy says:</h3>
+            <p className="text-gray-700">
+              Rawr! I lost my rock collection and i cant stand it!
+            </p>
+          </div>
+        </div>
+        
+        <button
+          onClick={onClose}
+          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
+        >
+          I'll help you find them!
+        </button>
       </div>
     </div>
   );

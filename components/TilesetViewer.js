@@ -32,6 +32,11 @@ export default function TilesetViewer() {
           frameWidth: 16,
           frameHeight: 16,
         });
+        
+        this.load.spritesheet('firecave', '/spritesheets/Firecave_A1.png', {
+          frameWidth: 48,
+          frameHeight: 48,
+        });
       }
 
       create() {
@@ -49,6 +54,7 @@ export default function TilesetViewer() {
           { key: 'tileset', name: 'Tileset_16x16.png', metadataKey: 'tileset' },
           { key: 'objects', name: 'Objects.png', metadataKey: 'objects' },
           { key: 'train', name: 'train.png', metadataKey: 'train' },
+          { key: 'firecave', name: 'Firecave_A1.png', metadataKey: 'firecave' },
         ];
 
         const tileSize = 16;

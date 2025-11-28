@@ -84,22 +84,38 @@ export default function WorldEditor({ onBackToGame }) {
           spacing: 0,
           margin: 0,
         });
+        
+        this.load.spritesheet('firecave', '/spritesheets/Firecave_A1.png', {
+          frameWidth: 48,
+          frameHeight: 48,
+          spacing: 0,
+          margin: 0,
+        });
       }
 
       create() {
         const world = getWorld(this.worldKey);
-        const tileSize = 16;
+        const baseTileSize = 16; // Base grid size
         const scale = 2;
+        
+        // Store sprite sheet tile sizes
+        this.spriteSheetSizes = {
+          'tileset': 16,
+          'objects': 16,
+          'train': 16,
+          'firecave': 48,
+        };
         
         // Set texture filtering
         this.textures.get('tileset').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('objects').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('train').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('firecave').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
         // Create background
         const bg = this.add.graphics();
         bg.fillStyle(0x222222, 1);
-        bg.fillRect(0, 0, world.width * tileSize * scale, world.height * tileSize * scale);
+        bg.fillRect(0, 0, world.width * baseTileSize * scale, world.height * baseTileSize * scale);
 
         // Render all layers
         this.layers.forEach((layer, layerIndex) => {
@@ -109,8 +125,8 @@ export default function WorldEditor({ onBackToGame }) {
             this.layerSprites[layerIndex][y] = [];
             for (let x = 0; x < world.width; x++) {
               const tileIndex = layer.tiles[y][x];
-              const tileX = x * tileSize * scale;
-              const tileY = y * tileSize * scale;
+              const tileX = x * baseTileSize * scale;
+              const tileY = y * baseTileSize * scale;
               
               // Skip null/undefined
               if (tileIndex === null || tileIndex === undefined) {
@@ -118,10 +134,14 @@ export default function WorldEditor({ onBackToGame }) {
                 continue;
               }
               
-              // Create sprite for ALL tiles - completely generic, no conditions
+              // Create sprite for ALL tiles - scale based on sprite sheet tile size
               const tile = this.add.image(tileX, tileY, layer.spriteSheet, tileIndex);
               tile.setOrigin(0, 0);
-              tile.setScale(scale);
+              
+              // Calculate scale based on sprite sheet tile size
+              const sheetTileSize = this.spriteSheetSizes[layer.spriteSheet] || 16;
+              const tileScale = (baseTileSize * scale) / sheetTileSize;
+              tile.setScale(tileScale);
               tile.setDepth(layerIndex);
               tile.setData('tileIndex', tileIndex);
               tile.setData('layerIndex', layerIndex);
@@ -156,11 +176,11 @@ export default function WorldEditor({ onBackToGame }) {
         
         // Draw grid
         this.gridGraphics = this.add.graphics();
-        this.drawGrid(tileSize * scale);
+        this.drawGrid(baseTileSize * scale);
 
         // Set camera bounds with padding to avoid UI elements
-        const worldWidth = world.width * tileSize * scale;
-        const worldHeight = world.height * tileSize * scale;
+        const worldWidth = world.width * baseTileSize * scale;
+        const worldHeight = world.height * baseTileSize * scale;
         const padding = 400; // Extra space on all sides
         this.cameras.main.setBounds(
           -padding, 
@@ -549,15 +569,18 @@ export default function WorldEditor({ onBackToGame }) {
         
         // Create new sprite or interactive zone
         if (newTileIndex !== null && newTileIndex !== undefined) {
-          const tileSize = 16;
+          const baseTileSize = 16;
           const scale = 2;
-          const tileX = x * tileSize * scale;
-          const tileY = y * tileSize * scale;
+          const tileX = x * baseTileSize * scale;
+          const tileY = y * baseTileSize * scale;
           
-          // Create sprite for all tiles
+          // Create sprite with proper scaling for sprite sheet
           const tile = this.add.image(tileX, tileY, layer.spriteSheet, newTileIndex);
           tile.setOrigin(0, 0);
-          tile.setScale(scale);
+          
+          const sheetTileSize = this.spriteSheetSizes[layer.spriteSheet] || 16;
+          const tileScale = (baseTileSize * scale) / sheetTileSize;
+          tile.setScale(tileScale);
           tile.setData('tileIndex', newTileIndex);
           
           // Check tile properties (only stored if different from defaults)
@@ -898,7 +921,7 @@ export default function WorldEditor({ onBackToGame }) {
 
       addLayer(layer, layerIndex) {
         const world = getWorld(this.worldKey);
-        const tileSize = 16;
+        const baseTileSize = 16;
         const scale = 2;
         
         this.layerSprites[layerIndex] = [];
@@ -908,18 +931,21 @@ export default function WorldEditor({ onBackToGame }) {
           this.layerSprites[layerIndex][y] = [];
           for (let x = 0; x < world.width; x++) {
             const tileIndex = layer.tiles[y][x];
-            const tileX = x * tileSize * scale;
-            const tileY = y * tileSize * scale;
+            const tileX = x * baseTileSize * scale;
+            const tileY = y * baseTileSize * scale;
             
             if (tileIndex === null || tileIndex === undefined) {
               this.layerSprites[layerIndex][y][x] = null;
               continue;
             }
             
-            // Create sprite for all tiles
+            // Create sprite with proper scaling for sprite sheet
             const tile = this.add.image(tileX, tileY, layer.spriteSheet, tileIndex);
             tile.setOrigin(0, 0);
-            tile.setScale(scale);
+            
+            const sheetTileSize = this.spriteSheetSizes[layer.spriteSheet] || 16;
+            const tileScale = (baseTileSize * scale) / sheetTileSize;
+            tile.setScale(tileScale);
             
             tile.setDepth(layerIndex);
             tile.setData('tileIndex', tileIndex);
@@ -979,7 +1005,7 @@ export default function WorldEditor({ onBackToGame }) {
         // Recreate layer sprites
         const world = getWorld(this.worldKey);
         const layer = this.layers[layerIndex];
-        const tileSize = 16;
+        const baseTileSize = 16;
         const scale = 2;
         
         this.layerSprites[layerIndex] = [];
@@ -994,13 +1020,16 @@ export default function WorldEditor({ onBackToGame }) {
               continue;
             }
             
-            const tileX = x * tileSize * scale;
-            const tileY = y * tileSize * scale;
+            const tileX = x * baseTileSize * scale;
+            const tileY = y * baseTileSize * scale;
             
-            // Create sprite for all tiles
+            // Create sprite with proper scaling for sprite sheet
             const tile = this.add.image(tileX, tileY, layer.spriteSheet, tileIndex);
             tile.setOrigin(0, 0);
-            tile.setScale(scale);
+            
+            const sheetTileSize = this.spriteSheetSizes[layer.spriteSheet] || 16;
+            const tileScale = (baseTileSize * scale) / sheetTileSize;
+            tile.setScale(tileScale);
             
             tile.setDepth(layerIndex);
             tile.setData('tileIndex', tileIndex);
@@ -1510,6 +1539,7 @@ export default function WorldEditor({ onBackToGame }) {
             <span className="text-white font-semibold px-2">
               {layers[currentLayer]?.spriteSheet === 'tileset' ? 'Tileset' :
                layers[currentLayer]?.spriteSheet === 'train' ? 'Train' :
+               layers[currentLayer]?.spriteSheet === 'firecave' ? 'Firecave' :
                'Objects'}
             </span>
             <button
@@ -1535,6 +1565,7 @@ export default function WorldEditor({ onBackToGame }) {
                 spriteSheet={
                   layers[currentLayer].spriteSheet === 'tileset' ? 'Tileset_16x16.png' :
                   layers[currentLayer].spriteSheet === 'train' ? 'train.png' :
+                  layers[currentLayer].spriteSheet === 'firecave' ? 'Firecave_A1.png' :
                   'Objects.png'
                 }
                 selectedTile={selectedPaletteTile}
@@ -1655,6 +1686,7 @@ export default function WorldEditor({ onBackToGame }) {
           spriteSheet={
             layers[currentLayer].spriteSheet === 'tileset' ? 'Tileset_16x16.png' :
             layers[currentLayer].spriteSheet === 'train' ? 'train.png' :
+            layers[currentLayer].spriteSheet === 'firecave' ? 'Firecave_A1.png' :
             'Objects.png'
           }
           onSelect={handleTileSelect}
@@ -1786,6 +1818,7 @@ function LayerManagerModal({ layers, currentLayer, onClose, onAddLayer, onRename
                   <option value="tileset">Tileset</option>
                   <option value="objects">Objects</option>
                   <option value="train">Train</option>
+                  <option value="firecave">Firecave</option>
                 </select>
                 
                 {layers.length > 1 && (
@@ -1829,13 +1862,25 @@ function LayerManagerModal({ layers, currentLayer, onClose, onAddLayer, onRename
 function TilePalette({ spriteSheet, selectedTile, onTileClick, onWidthChange }) {
   const [tiles, setTiles] = useState([]);
   const [tilesPerRow, setTilesPerRow] = useState(9);
+  const [tileSizeInSheet, setTileSizeInSheet] = useState(16);
 
   useEffect(() => {
+    // Determine tile size based on sprite sheet
+    const sheetSizes = {
+      'Tileset_16x16.png': 16,
+      'Objects.png': 16,
+      'train.png': 16,
+      'Firecave_A1.png': 48,
+    };
+    
+    const sheetTileSize = sheetSizes[spriteSheet] || 16;
+    setTileSizeInSheet(sheetTileSize);
+    
     const img = new Image();
     img.src = `/spritesheets/${spriteSheet}`;
     img.onload = () => {
-      const tpr = Math.floor(img.width / 16);
-      const totalTiles = Math.floor(img.width / 16) * Math.floor(img.height / 16);
+      const tpr = Math.floor(img.width / sheetTileSize);
+      const totalTiles = Math.floor(img.width / sheetTileSize) * Math.floor(img.height / sheetTileSize);
       const tileArray = Array.from({ length: totalTiles }, (_, i) => i);
       setTilesPerRow(tpr);
       setTiles(tileArray);
@@ -1879,7 +1924,7 @@ function TilePalette({ spriteSheet, selectedTile, onTileClick, onWidthChange }) 
                 height: '32px',
                 backgroundImage: `url(/spritesheets/${spriteSheet})`,
                 backgroundPosition: `-${col * 32}px -${row * 32}px`,
-                backgroundSize: `${tilesPerRow * 32}px auto`,
+                backgroundSize: `${(tilesPerRow * tileSizeInSheet * 32) / tileSizeInSheet}px auto`,
                 imageRendering: 'pixelated',
               }}
             />
@@ -1896,17 +1941,29 @@ function TilePalette({ spriteSheet, selectedTile, onTileClick, onWidthChange }) 
 function TileSelectorModal({ spriteSheet, onSelect, onClose }) {
   const [tiles, setTiles] = useState([]);
   const [tilesPerRow, setTilesPerRow] = useState(9);
+  const [tileSizeInSheet, setTileSizeInSheet] = useState(16);
   const [dragStart, setDragStart] = useState(null);
   const [dragEnd, setDragEnd] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
+    // Determine tile size based on sprite sheet
+    const sheetSizes = {
+      'Tileset_16x16.png': 16,
+      'Objects.png': 16,
+      'train.png': 16,
+      'Firecave_A1.png': 48,
+    };
+    
+    const sheetTileSize = sheetSizes[spriteSheet] || 16;
+    setTileSizeInSheet(sheetTileSize);
+    
     // Load the appropriate sprite sheet
     const img = new Image();
     img.src = `/spritesheets/${spriteSheet}`;
     img.onload = () => {
-      const tpr = Math.floor(img.width / 16);
-      const totalTiles = Math.floor(img.width / 16) * Math.floor(img.height / 16);
+      const tpr = Math.floor(img.width / sheetTileSize);
+      const totalTiles = Math.floor(img.width / sheetTileSize) * Math.floor(img.height / sheetTileSize);
       const tileArray = Array.from({ length: totalTiles }, (_, i) => i);
       setTilesPerRow(tpr);
       setTiles(tileArray);
@@ -2051,7 +2108,7 @@ function TileSelectorModal({ spriteSheet, onSelect, onClose }) {
                     height: '48px',
                     backgroundImage: `url(/spritesheets/${spriteSheet})`,
                     backgroundPosition: `-${col * 48}px -${row * 48}px`,
-                    backgroundSize: `${tilesPerRow * 48}px auto`,
+                    backgroundSize: `${(tilesPerRow * tileSizeInSheet * 48) / tileSizeInSheet}px auto`,
                     imageRendering: 'pixelated',
                   }}
                 />
