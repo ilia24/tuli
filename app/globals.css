@@ -32,8 +32,20 @@
     }
   }
   
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -20px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+  
   --animate-fade-in: fade-in 0.3s ease-in;
   --animate-slide-up: slide-up 0.4s ease-out;
+  --animate-slide-down: slide-down 0.3s ease-out;
 }
 
 @media (prefers-color-scheme: dark) {

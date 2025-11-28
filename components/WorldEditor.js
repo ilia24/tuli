@@ -20,17 +20,32 @@ export default function WorldEditor({ onBackToGame }) {
   const paletteStateBeforePreview = useRef(true);
   const [selectedTileGroup, setSelectedTileGroup] = useState(null);
   const [showControls, setShowControls] = useState(false);
+  const [hoveredTileProps, setHoveredTileProps] = useState(null);
+  const [currentWorldKey, setCurrentWorldKey] = useState(() => {
+    // Get current world from game if available
+    return typeof window !== 'undefined' && window.currentGameWorld 
+      ? window.currentGameWorld 
+      : 'tutorial';
+  });
+  const [availableWorlds] = useState(['tutorial', 'lavaWorld']);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const [saveToastMessage, setSaveToastMessage] = useState('');
 
   useEffect(() => {
     if (phaserGameRef.current || !gameRef.current) return;
 
-    const world = getWorld('tutorial');
+    const world = getWorld(currentWorldKey);
     const worldLayers = JSON.parse(JSON.stringify(world.layers)); // Deep copy
+    const worldTileProps = JSON.parse(JSON.stringify(world.tileProperties || {})); // Deep copy
     setLayers(worldLayers);
+    setHasUnsavedChanges(false); // Reset on world load
 
     class WorldEditorScene extends Phaser.Scene {
       constructor() {
         super({ key: 'WorldEditorScene' });
+        this.worldKey = currentWorldKey;
         this.layers = worldLayers;
         this.layerSprites = []; // Array of layers, each containing tileSprites
         this.gridGraphics = null;
@@ -42,11 +57,13 @@ export default function WorldEditor({ onBackToGame }) {
         this.selectedTiles = []; // Array of selected tile positions
         this.isSelectingTiles = false;
         this.selectionStartTile = null;
+        this.selectionEndTile = null; // Where the drag ended (the anchor for paste)
         this.copiedTileGroup = null; // For multi-tile copy/paste
+        this.tileProperties = worldTileProps; // Store walkable and above-player properties per tile
       }
 
       preload() {
-        // Load both sprite sheets
+        // Load sprite sheets
         this.load.spritesheet('tileset', '/spritesheets/Tileset_16x16.png', {
           frameWidth: 16,
           frameHeight: 16,
@@ -60,15 +77,24 @@ export default function WorldEditor({ onBackToGame }) {
           spacing: 0,
           margin: 0,
         });
+        
+        this.load.spritesheet('train', '/spritesheets/train.png', {
+          frameWidth: 16,
+          frameHeight: 16,
+          spacing: 0,
+          margin: 0,
+        });
       }
 
       create() {
+        const world = getWorld(this.worldKey);
         const tileSize = 16;
         const scale = 2;
         
         // Set texture filtering
         this.textures.get('tileset').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('objects').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('train').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
         // Create background
         const bg = this.add.graphics();
@@ -100,6 +126,18 @@ export default function WorldEditor({ onBackToGame }) {
               tile.setData('tileIndex', tileIndex);
               tile.setData('layerIndex', layerIndex);
               
+              // Check tile properties (only stored if different from defaults)
+              const tileKey = `${layerIndex}-${x}-${y}`;
+              const props = this.tileProperties[tileKey];
+              
+              // Apply depth based on abovePlayer flag (default: false)
+              if (props && props.abovePlayer) {
+                tile.setDepth(layerIndex + 1000); // Above player (depth 100)
+              }
+              
+              // Apply visual tints based on properties
+              this.applyTileTint(tile, props);
+              
               this.layerSprites[layerIndex][y][x] = tile;
             }
           }
@@ -120,10 +158,16 @@ export default function WorldEditor({ onBackToGame }) {
         this.gridGraphics = this.add.graphics();
         this.drawGrid(tileSize * scale);
 
-        // Set camera bounds
+        // Set camera bounds with padding to avoid UI elements
         const worldWidth = world.width * tileSize * scale;
         const worldHeight = world.height * tileSize * scale;
-        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        const padding = 400; // Extra space on all sides
+        this.cameras.main.setBounds(
+          -padding, 
+          -padding, 
+          worldWidth + (padding * 2), 
+          worldHeight + (padding * 2)
+        );
 
         // Track drag state
         this.isDragging = false;
@@ -168,8 +212,11 @@ export default function WorldEditor({ onBackToGame }) {
           if (pointer.button === 2) { // Right button released
             this.isDragging = false;
           } else if (pointer.button === 1) { // Middle button released
+            // Save where the selection ended (this becomes the anchor)
+            if (this.isSelectingTiles) {
+              this.selectionEndTile = this.worldToGrid(pointer.worldX, pointer.worldY);
+            }
             this.isSelectingTiles = false;
-            console.log(`Selected ${this.selectedTiles.length} tiles`);
           }
         });
 
@@ -191,8 +238,8 @@ export default function WorldEditor({ onBackToGame }) {
           const layer = this.layers[layerIndex];
           
           if (this.selectedTiles.length > 1) {
-            // Copy multiple tiles with anchor point
-            const anchorTile = this.selectionStartTile;
+            // Copy multiple tiles with anchor point (where the drag ended)
+            const anchorTile = this.selectionEndTile || this.selectionStartTile;
             const copiedTiles = [];
             
             this.selectedTiles.forEach(pos => {
@@ -209,7 +256,6 @@ export default function WorldEditor({ onBackToGame }) {
               layerIndex: layerIndex,
             };
             
-            console.log(`Copied ${copiedTiles.length} tiles with anchor at (${anchorTile.gridX}, ${anchorTile.gridY})`);
             
             // Visual feedback - flash green
             this.selectionRectangle.clear();
@@ -236,7 +282,6 @@ export default function WorldEditor({ onBackToGame }) {
             this.copiedTileIndex = tileIndex;
             this.copiedTileGroup = null; // Clear multi-tile copy
             window.worldEditorSelectedTile = tileIndex;
-            console.log(`Copied tile ${tileIndex} from position (${this.hoveredTile.x}, ${this.hoveredTile.y})`);
             
             // Visual feedback - flash the tile
             this.hoveredTile.sprite.setTint(0x00ff00);
@@ -254,13 +299,12 @@ export default function WorldEditor({ onBackToGame }) {
           // Check if we have a copied tile group
           if (this.copiedTileGroup && this.hoveredTile) {
             // Paste multi-tile group with anchor point
-            console.log(`Pasting ${this.copiedTileGroup.tiles.length} tiles at (${this.hoveredTile.x}, ${this.hoveredTile.y})`);
-            
+            const world = getWorld(this.worldKey);
             this.copiedTileGroup.tiles.forEach(({ tileIndex, offsetX, offsetY }) => {
               const targetX = this.hoveredTile.x + offsetX;
               const targetY = this.hoveredTile.y + offsetY;
               
-              if (targetX >= 0 && targetX < 50 && targetY >= 0 && targetY < 50) {
+              if (targetX >= 0 && targetX < world.width && targetY >= 0 && targetY < world.height) {
                 this.updateTile(targetX, targetY, layerIndex, tileIndex);
               }
             });
@@ -277,7 +321,6 @@ export default function WorldEditor({ onBackToGame }) {
           // Check if we have multiple tiles selected for batch fill
           if (this.selectedTiles.length > 1) {
             // Batch paste same tile to all selected tiles
-            console.log(`Batch pasting tile ${pasteIndex} to ${this.selectedTiles.length} tiles`);
             
             this.selectedTiles.forEach(pos => {
               this.updateTile(pos.gridX, pos.gridY, layerIndex, pasteIndex);
@@ -287,7 +330,6 @@ export default function WorldEditor({ onBackToGame }) {
             this.clearTileSelection();
           } else if (this.hoveredTile) {
             // Single tile paste to hovered tile
-            console.log(`Pasting tile ${pasteIndex} at (${this.hoveredTile.x}, ${this.hoveredTile.y})`);
             
             this.updateTile(this.hoveredTile.x, this.hoveredTile.y, layerIndex, pasteIndex);
           }
@@ -296,8 +338,167 @@ export default function WorldEditor({ onBackToGame }) {
         this.input.keyboard.on('keydown-ESC', () => {
           // Clear tile selection
           if (this.selectedTiles.length > 0) {
-            console.log('Clearing tile selection');
             this.clearTileSelection();
+          }
+        });
+
+        this.input.keyboard.on('keydown-W', () => {
+          const layerIndex = this.currentLayerIndex;
+          
+          // Check if we have multiple tiles selected
+          if (this.selectedTiles.length > 1) {
+            console.log(`Toggling walkability for ${this.selectedTiles.length} selected tiles`);
+            
+            // Toggle walkability for all selected tiles
+            this.selectedTiles.forEach(pos => {
+              const tileKey = `${layerIndex}-${pos.gridX}-${pos.gridY}`;
+              const currentProps = this.tileProperties[tileKey] || { walkable: true, abovePlayer: false };
+              const newWalkable = !currentProps.walkable;
+              
+              // Store or remove property
+              if (newWalkable === false || currentProps.abovePlayer === true) {
+                this.tileProperties[tileKey] = { 
+                  walkable: newWalkable, 
+                  abovePlayer: currentProps.abovePlayer 
+                };
+              } else if (this.tileProperties[tileKey]) {
+                delete this.tileProperties[tileKey];
+              }
+              
+              // Update sprite tint
+              const tile = this.layerSprites[layerIndex][pos.gridY][pos.gridX];
+              if (tile) {
+                this.applyTileTint(tile, newWalkable === false || currentProps.abovePlayer ? 
+                  { walkable: newWalkable, abovePlayer: currentProps.abovePlayer } : null);
+              }
+            });
+            
+            console.log(`  Bulk updated ${this.selectedTiles.length} tiles`);
+            setHasUnsavedChanges(true);
+          } else if (this.hoveredTile) {
+            // Toggle single tile
+            const x = this.hoveredTile.x;
+            const y = this.hoveredTile.y;
+            const tileKey = `${layerIndex}-${x}-${y}`;
+            
+            console.log(`Toggling walkability for tile at (${x}, ${y})`);
+            
+            const currentProps = this.tileProperties[tileKey] || { walkable: true, abovePlayer: false };
+            const newWalkable = !currentProps.walkable;
+            
+            console.log(`  Current: walkable=${currentProps.walkable}, abovePlayer=${currentProps.abovePlayer}`);
+            console.log(`  New walkable: ${newWalkable}`);
+            
+            if (newWalkable === false || currentProps.abovePlayer === true) {
+              this.tileProperties[tileKey] = { 
+                walkable: newWalkable, 
+                abovePlayer: currentProps.abovePlayer 
+              };
+              console.log(`  Storing property:`, this.tileProperties[tileKey]);
+            } else if (this.tileProperties[tileKey]) {
+              delete this.tileProperties[tileKey];
+              console.log(`  Removed property (back to defaults)`);
+            }
+            
+            const tile = this.layerSprites[layerIndex][y][x];
+            if (tile) {
+              const newProps = { walkable: newWalkable, abovePlayer: currentProps.abovePlayer };
+              this.applyTileTint(tile, newWalkable === false || currentProps.abovePlayer ? newProps : null);
+            }
+            
+            const newProps = { walkable: newWalkable, abovePlayer: currentProps.abovePlayer };
+            console.log(`  Updating React state:`, newProps);
+            setHoveredTileProps(newProps);
+            
+            // Mark as changed
+            setHasUnsavedChanges(true);
+          }
+        });
+
+        this.input.keyboard.on('keydown-A', () => {
+          const layerIndex = this.currentLayerIndex;
+          
+          // Check if we have multiple tiles selected
+          if (this.selectedTiles.length > 1) {
+            console.log(`Toggling above player for ${this.selectedTiles.length} selected tiles`);
+            
+            // Toggle above player for all selected tiles
+            this.selectedTiles.forEach(pos => {
+              const tileKey = `${layerIndex}-${pos.gridX}-${pos.gridY}`;
+              const currentProps = this.tileProperties[tileKey] || { walkable: true, abovePlayer: false };
+              const newAbovePlayer = !currentProps.abovePlayer;
+              
+              // Store or remove property
+              if (newAbovePlayer === true || currentProps.walkable === false) {
+                this.tileProperties[tileKey] = { 
+                  walkable: currentProps.walkable, 
+                  abovePlayer: newAbovePlayer 
+                };
+              } else if (this.tileProperties[tileKey]) {
+                delete this.tileProperties[tileKey];
+              }
+              
+              // Update sprite depth and tint
+              const tile = this.layerSprites[layerIndex][pos.gridY][pos.gridX];
+              if (tile) {
+                if (newAbovePlayer) {
+                  tile.setDepth(layerIndex + 1000);
+                } else {
+                  tile.setDepth(layerIndex);
+                }
+                
+                this.applyTileTint(tile, newAbovePlayer === true || currentProps.walkable === false ? 
+                  { walkable: currentProps.walkable, abovePlayer: newAbovePlayer } : null);
+              }
+            });
+            
+            console.log(`  Bulk updated ${this.selectedTiles.length} tiles`);
+            setHasUnsavedChanges(true);
+          } else if (this.hoveredTile) {
+            // Toggle single tile
+            const x = this.hoveredTile.x;
+            const y = this.hoveredTile.y;
+            const tileKey = `${layerIndex}-${x}-${y}`;
+            
+            console.log(`Toggling above player for tile at (${x}, ${y})`);
+            
+            const currentProps = this.tileProperties[tileKey] || { walkable: true, abovePlayer: false };
+            const newAbovePlayer = !currentProps.abovePlayer;
+            
+            console.log(`  Current: walkable=${currentProps.walkable}, abovePlayer=${currentProps.abovePlayer}`);
+            console.log(`  New abovePlayer: ${newAbovePlayer}`);
+            
+            if (newAbovePlayer === true || currentProps.walkable === false) {
+              this.tileProperties[tileKey] = { 
+                walkable: currentProps.walkable, 
+                abovePlayer: newAbovePlayer 
+              };
+              console.log(`  Storing property:`, this.tileProperties[tileKey]);
+            } else if (this.tileProperties[tileKey]) {
+              delete this.tileProperties[tileKey];
+              console.log(`  Removed property (back to defaults)`);
+            }
+            
+            const tile = this.layerSprites[layerIndex][y][x];
+            if (tile) {
+              if (newAbovePlayer) {
+                tile.setDepth(layerIndex + 1000);
+                console.log(`  Set depth to ${layerIndex + 1000} (above player)`);
+              } else {
+                tile.setDepth(layerIndex);
+                console.log(`  Set depth to ${layerIndex} (below player)`);
+              }
+              
+              const newProps = { walkable: currentProps.walkable, abovePlayer: newAbovePlayer };
+              this.applyTileTint(tile, newAbovePlayer === true || currentProps.walkable === false ? newProps : null);
+            }
+            
+            const newProps = { walkable: currentProps.walkable, abovePlayer: newAbovePlayer };
+            console.log(`  Updating React state:`, newProps);
+            setHoveredTileProps(newProps);
+            
+            // Mark as changed
+            setHasUnsavedChanges(true);
           }
         });
 
@@ -340,7 +541,6 @@ export default function WorldEditor({ onBackToGame }) {
         
         layer.tiles[y][x] = newTileIndex;
         
-        console.log(`Updating tile at (${x}, ${y}) on layer ${layerIndex} (${layer.name}) with tile ${newTileIndex} from sprite sheet: ${layer.spriteSheet}`);
         
         // Remove old sprite if exists
         if (this.layerSprites[layerIndex][y][x]) {
@@ -358,9 +558,21 @@ export default function WorldEditor({ onBackToGame }) {
           const tile = this.add.image(tileX, tileY, layer.spriteSheet, newTileIndex);
           tile.setOrigin(0, 0);
           tile.setScale(scale);
-          
-          tile.setDepth(layerIndex);
           tile.setData('tileIndex', newTileIndex);
+          
+          // Check tile properties (only stored if different from defaults)
+          const tileKey = `${layerIndex}-${x}-${y}`;
+          const props = this.tileProperties[tileKey];
+          
+          // Set depth based on abovePlayer flag (default: false)
+          if (props && props.abovePlayer) {
+            tile.setDepth(layerIndex + 1000);
+          } else {
+            tile.setDepth(layerIndex);
+          }
+          
+          // Apply visual tints based on properties
+          this.applyTileTint(tile, props);
           
           // Only show if this is the active layer
           if (layerIndex === this.currentLayerIndex) {
@@ -394,9 +606,9 @@ export default function WorldEditor({ onBackToGame }) {
           this.layerSprites[layerIndex][y][x] = null;
         }
         
-        // Update state and log
+        // Update state and mark as changed
         setCurrentTiles(JSON.parse(JSON.stringify(this.layers)));
-        console.log(this.layers)
+        setHasUnsavedChanges(true);
       }
 
       setupLayerInteractivity(activeLayerIndex) {
@@ -420,17 +632,26 @@ export default function WorldEditor({ onBackToGame }) {
               // Remove all old listeners
               tile.removeAllListeners();
               
-              // Clear visual effects
-              if (tile.clearTint) {
-                tile.clearTint();
-              }
+              // Get tile properties to reapply tints
+              const tileKey = `${layerIndex}-${x}-${y}`;
+              const props = this.tileProperties[tileKey];
               
               if (layerIndex === activeLayerIndex) {
                 // ACTIVE LAYER - show and make fully interactive
                 tile.setVisible(true);
-                tile.setDepth(1000 + layerIndex);
+                
+                // Set depth based on properties
+                if (props && props.abovePlayer) {
+                  tile.setDepth(1000 + layerIndex);
+                } else {
+                  tile.setDepth(1000 + layerIndex); // Keep active layer on top during editing
+                }
+                
                 tile.setAlpha(1);
                 tile.setInteractive();
+                
+                // Reapply property tints
+                this.applyTileTint(tile, props);
                 
                 activeCount++;
                 
@@ -444,9 +665,7 @@ export default function WorldEditor({ onBackToGame }) {
                 });
 
                 tile.on('pointerover', () => {
-                  console.log(`Hover over tile at (${x}, ${y}) on layer ${layerIndex}`);
-                  
-                  // Draw border around hovered tile
+                  // Draw border around hovered tile (don't change tint, keep property tint)
                   const tileSize = 16;
                   const scale = 2;
                   this.hoverBorder.clear();
@@ -458,31 +677,31 @@ export default function WorldEditor({ onBackToGame }) {
                     tileSize * scale + 3
                   );
                   
-                  // Also add a subtle tint for non-transparent sprites
-                  if (tile.setTint) {
-                    tile.setTint(0x4444ff);
-                  }
-                  
                   this.hoveredTile = { x, y, sprite: tile, layer: layerIndex };
+                  
+                  // Update React state with tile properties
+                  const tileKey = `${layerIndex}-${x}-${y}`;
+                  const props = this.tileProperties[tileKey] || { walkable: true, abovePlayer: false };
+                  setHoveredTileProps(props);
                 });
                 
                 tile.on('pointerout', () => {
-                  // Clear border
+                  // Clear border only (keep property tint)
                   this.hoverBorder.clear();
-                  
-                  // Clear tint
-                  if (tile.clearTint) {
-                    tile.clearTint();
-                  }
                   
                   if (this.hoveredTile && this.hoveredTile.x === x && this.hoveredTile.y === y) {
                     this.hoveredTile = null;
+                    setHoveredTileProps(null);
                   }
                 });
               } else {
                 // INACTIVE LAYER - hide completely
                 tile.setVisible(false);
                 tile.disableInteractive();
+                
+                // Still apply tints for when layer becomes visible again
+                this.applyTileTint(tile, props);
+                
                 inactiveCount++;
               }
             });
@@ -514,21 +733,31 @@ export default function WorldEditor({ onBackToGame }) {
         this.layerSprites.forEach((layer, layerIndex) => {
           if (!layer) return;
           
-          layer.forEach((row) => {
+          layer.forEach((row, y) => {
             if (!row) return;
             
-            row.forEach((tile) => {
+            row.forEach((tile, x) => {
               if (!tile) return;
               
               tile.setVisible(true);
               tile.setAlpha(1);
-              tile.setDepth(layerIndex); // Render in correct order
+              
+              // Get tile properties
+              const tileKey = `${layerIndex}-${x}-${y}`;
+              const props = this.tileProperties[tileKey];
+              
+              // Set depth based on properties
+              if (props && props.abovePlayer) {
+                tile.setDepth(layerIndex + 1000);
+              } else {
+                tile.setDepth(layerIndex);
+              }
+              
               tile.disableInteractive();
               tile.removeAllListeners();
               
-              if (tile.clearTint) {
-                tile.clearTint();
-              }
+              // Reapply property tints
+              this.applyTileTint(tile, props);
             });
           });
         });
@@ -607,9 +836,40 @@ export default function WorldEditor({ onBackToGame }) {
         return { minX, maxX, minY, maxY };
       }
 
+      applyTileTint(tile, props) {
+        // Apply visual tints based on tile properties
+        if (!props) {
+          // Default: no tint
+          if (tile.clearTint) {
+            tile.clearTint();
+          }
+          return;
+        }
+        
+        if (!props.walkable && props.abovePlayer) {
+          // Both: purple tint (mix of red and blue)
+          tile.setTint(0xaa44aa);
+          console.log('Applied purple tint (not walkable + above player)');
+        } else if (!props.walkable) {
+          // Not walkable: red tint
+          tile.setTint(0xff6666);
+          console.log('Applied red tint (not walkable)');
+        } else if (props.abovePlayer) {
+          // Above player: blue tint
+          tile.setTint(0x6666ff);
+          console.log('Applied blue tint (above player)');
+        } else {
+          // Default: no tint
+          if (tile.clearTint) {
+            tile.clearTint();
+          }
+        }
+      }
+
       clearTileSelection() {
         this.selectedTiles = [];
         this.selectionStartTile = null;
+        this.selectionEndTile = null;
         this.isSelectingTiles = false;
         this.selectionRectangle.clear();
       }
@@ -617,6 +877,7 @@ export default function WorldEditor({ onBackToGame }) {
       placeTileGroup(clickedX, clickedY, layerIndex, selection) {
         // Place multiple tiles using anchor point (where user first clicked in modal)
         const { anchorTile, tiles, tilesPerRow } = selection;
+        const world = getWorld(this.worldKey);
         
         console.log(`Placing ${tiles.length} tiles with anchor at tile ${anchorTile}`);
         console.log(`Clicked world position: (${clickedX}, ${clickedY})`);
@@ -628,15 +889,15 @@ export default function WorldEditor({ onBackToGame }) {
           
           console.log(`  Placing tile ${tileIndex} at (${targetX}, ${targetY}) [offset: ${offsetX}, ${offsetY}]`);
           
-          // Check bounds
-          if (targetX >= 0 && targetX < 50 && targetY >= 0 && targetY < 50) {
+          // Check bounds dynamically
+          if (targetX >= 0 && targetX < world.width && targetY >= 0 && targetY < world.height) {
             this.updateTile(targetX, targetY, layerIndex, tileIndex);
           }
         });
       }
 
       addLayer(layer, layerIndex) {
-        const world = getWorld('tutorial');
+        const world = getWorld(this.worldKey);
         const tileSize = 16;
         const scale = 2;
         
@@ -663,6 +924,16 @@ export default function WorldEditor({ onBackToGame }) {
             tile.setDepth(layerIndex);
             tile.setData('tileIndex', tileIndex);
             
+            // Apply tile properties and tints
+            const tileKey = `${layerIndex}-${x}-${y}`;
+            const props = this.tileProperties[tileKey];
+            
+            if (props && props.abovePlayer) {
+              tile.setDepth(layerIndex + 1000);
+            }
+            
+            this.applyTileTint(tile, props);
+            
             if (layerIndex === this.currentLayerIndex) {
               tile.setInteractive(
                 new Phaser.Geom.Rectangle(0, 0, tileSize * scale, tileSize * scale),
@@ -677,14 +948,15 @@ export default function WorldEditor({ onBackToGame }) {
               });
 
               tile.on('pointerover', () => {
-                tile.setTint(0x4444ff); // Brighter blue
+                // Keep property tint, don't override
                 this.hoveredTile = { x, y, sprite: tile, layer: layerIndex };
+                setHoveredTileProps(props || { walkable: true, abovePlayer: false });
               });
               
               tile.on('pointerout', () => {
-                tile.clearTint();
                 if (this.hoveredTile && this.hoveredTile.x === x && this.hoveredTile.y === y) {
                   this.hoveredTile = null;
+                  setHoveredTileProps(null);
                 }
               });
             } else {
@@ -705,7 +977,7 @@ export default function WorldEditor({ onBackToGame }) {
         });
         
         // Recreate layer sprites
-        const world = getWorld('tutorial');
+        const world = getWorld(this.worldKey);
         const layer = this.layers[layerIndex];
         const tileSize = 16;
         const scale = 2;
@@ -733,6 +1005,16 @@ export default function WorldEditor({ onBackToGame }) {
             tile.setDepth(layerIndex);
             tile.setData('tileIndex', tileIndex);
             
+            // Apply tile properties and tints
+            const tileKey = `${layerIndex}-${x}-${y}`;
+            const props = this.tileProperties[tileKey];
+            
+            if (props && props.abovePlayer) {
+              tile.setDepth(layerIndex + 1000);
+            }
+            
+            this.applyTileTint(tile, props);
+            
             // Only show if this is the active layer
             if (layerIndex === this.currentLayerIndex) {
               tile.setVisible(true);
@@ -746,14 +1028,15 @@ export default function WorldEditor({ onBackToGame }) {
               });
 
               tile.on('pointerover', () => {
-                tile.setTint(0x4444ff); // Brighter blue
+                // Only show border, keep property tint
                 this.hoveredTile = { x, y, sprite: tile, layer: layerIndex };
+                setHoveredTileProps(props || { walkable: true, abovePlayer: false });
               });
               
               tile.on('pointerout', () => {
-                tile.clearTint();
                 if (this.hoveredTile && this.hoveredTile.x === x && this.hoveredTile.y === y) {
                   this.hoveredTile = null;
+                  setHoveredTileProps(null);
                 }
               });
             } else {
@@ -828,7 +1111,7 @@ export default function WorldEditor({ onBackToGame }) {
         phaserGameRef.current = null;
       }
     };
-  }, []);
+  }, [currentWorldKey]); // Reload when world changes
 
   const handleTileSelect = (selection) => {
     if (selectedGridPos && window.worldEditorScene) {
@@ -902,21 +1185,69 @@ export default function WorldEditor({ onBackToGame }) {
     setPreviewMode(!previewMode);
   };
 
-  const copyTilesToClipboard = () => {
-    if (layers.length > 0) {
-      const layersString = JSON.stringify(layers, null, 2);
-      navigator.clipboard.writeText(layersString).then(() => {
-        console.log('Layers copied to clipboard!');
-        console.log('Layers object:');
-        console.log(layersString);
-      }).catch(err => {
-        console.error('Failed to copy:', err);
-      });
+  const saveWorldToFile = async () => {
+    if (layers.length > 0 && window.worldEditorScene) {
+      setIsSaving(true);
+      const world = getWorld(currentWorldKey);
+      
+      // Build the world object
+      const worldData = {
+        name: world.name,
+        width: world.width,
+        height: world.height,
+        tileProperties: window.worldEditorScene.tileProperties || {},
+        layers: layers,
+        spawnPoint: world.spawnPoint,
+      };
+      
+      try {
+        // Save via API route
+        const response = await fetch('/api/save-world', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            worldKey: currentWorldKey,
+            worldData: worldData,
+          }),
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('World saved successfully:', result.message);
+          setHasUnsavedChanges(false);
+          
+          // Show success toast
+          setSaveToastMessage(`✅ ${world.name} saved successfully!`);
+          setShowSaveToast(true);
+          
+          // Hide toast after 3 seconds
+          setTimeout(() => setShowSaveToast(false), 3000);
+        } else {
+          console.error('Save failed:', result.error);
+          
+          // Show error toast
+          setSaveToastMessage(`❌ Save failed: ${result.error}`);
+          setShowSaveToast(true);
+          setTimeout(() => setShowSaveToast(false), 3000);
+        }
+      } catch (err) {
+        console.error('Error saving world:', err);
+        
+        // Show error toast
+        setSaveToastMessage(`❌ Error: ${err.message}`);
+        setShowSaveToast(true);
+        setTimeout(() => setShowSaveToast(false), 3000);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
   const addNewLayer = () => {
-    const world = getWorld('tutorial');
+    const world = getWorld(currentWorldKey);
     const newLayer = {
       name: `Layer ${layers.length + 1}`,
       spriteSheet: 'tileset',
@@ -1052,8 +1383,35 @@ export default function WorldEditor({ onBackToGame }) {
     <>
       <div ref={gameRef} className="w-full h-full" />
       
-      {/* Layer Controls - Top Left */}
-      <div className="fixed top-4 left-4 bg-black/90 text-white p-3 rounded-lg pointer-events-auto z-10000 flex gap-3 items-center">
+      {/* World Selector - Bottom Left, above Controls */}
+      {!previewMode && (
+        <div className="fixed bottom-12 left-1 bg-black/90 text-white p-3 rounded-lg pointer-events-auto z-10000 flex gap-3 items-center">
+          <span className="font-semibold">World:</span>
+          <select
+            value={currentWorldKey}
+            onChange={(e) => {
+              e.stopPropagation();
+              setCurrentWorldKey(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+            className="px-3 py-1 rounded bg-gray-700 text-white font-semibold cursor-pointer border-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {availableWorlds.map(worldKey => {
+              const world = getWorld(worldKey);
+              return (
+                <option key={worldKey} value={worldKey}>
+                  {world.name}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
+      
+      {/* Layer Controls - Bottom Right */}
+      <div className="fixed bottom-4 right-4 bg-black/90 text-white p-3 rounded-lg pointer-events-auto z-10000 flex gap-3 items-center">
         <span className="font-semibold">Layers:</span>
         {!previewMode && layers.map((layer, index) => (
           <button
@@ -1107,13 +1465,20 @@ export default function WorldEditor({ onBackToGame }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              copyTilesToClipboard();
+              saveWorldToFile();
             }}
             onMouseDown={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
-            className="px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-700 text-white font-semibold cursor-pointer"
+            disabled={isSaving}
+            className={`px-3 py-1 rounded font-semibold ${
+              isSaving
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : hasUnsavedChanges
+                ? 'bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer'
+                : 'bg-cyan-700 hover:bg-cyan-800 text-white cursor-pointer'
+            }`}
           >
-            Copy Layers
+            {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save World *' : 'Save World'}
           </button>
           <button
             onClick={(e) => {
@@ -1143,7 +1508,9 @@ export default function WorldEditor({ onBackToGame }) {
           {/* Header */}
           <div className="flex items-center justify-between bg-gray-700 p-2 border-b border-gray-600">
             <span className="text-white font-semibold px-2">
-              {layers[currentLayer]?.spriteSheet === 'tileset' ? 'Tileset' : 'Objects'}
+              {layers[currentLayer]?.spriteSheet === 'tileset' ? 'Tileset' :
+               layers[currentLayer]?.spriteSheet === 'train' ? 'Train' :
+               'Objects'}
             </span>
             <button
               onClick={(e) => {
@@ -1165,7 +1532,11 @@ export default function WorldEditor({ onBackToGame }) {
           >
             {layers[currentLayer] && (
               <TilePalette
-                spriteSheet={layers[currentLayer].spriteSheet === 'tileset' ? 'Tileset_16x16.png' : 'Objects.png'}
+                spriteSheet={
+                  layers[currentLayer].spriteSheet === 'tileset' ? 'Tileset_16x16.png' :
+                  layers[currentLayer].spriteSheet === 'train' ? 'train.png' :
+                  'Objects.png'
+                }
                 selectedTile={selectedPaletteTile}
                 onTileClick={handlePaletteTileClick}
                 onWidthChange={setPaletteWidth}
@@ -1190,9 +1561,30 @@ export default function WorldEditor({ onBackToGame }) {
         </button>
       )}
       
+      {/* Save Toast Notification */}
+      {showSaveToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-black/90 text-white px-6 py-3 rounded-lg shadow-lg pointer-events-none z-10002 animate-slide-down">
+          {saveToastMessage}
+        </div>
+      )}
+      
+      {/* Tile Properties Status */}
+      {!previewMode && hoveredTileProps && (
+        <div className="fixed bottom-24 right-4 bg-black/90 text-white px-4 py-2 rounded-lg text-sm pointer-events-none z-10000">
+          <div className="flex gap-4">
+            <span className={hoveredTileProps.walkable ? 'text-green-400' : 'text-red-400'}>
+              {hoveredTileProps.walkable ? '✓ Walkable' : '✗ Not Walkable'}
+            </span>
+            <span className={hoveredTileProps.abovePlayer ? 'text-purple-400' : 'text-gray-400'}>
+              {hoveredTileProps.abovePlayer ? '↑ Above Player' : '↓ Below Player'}
+            </span>
+          </div>
+        </div>
+      )}
+      
       {/* Instructions - Collapsible */}
       {!previewMode && (
-        <div className="fixed bottom-4 left-4 pointer-events-auto z-10000">
+        <div className="fixed bottom-1 left-1 pointer-events-auto z-10000">
           {showControls ? (
             <div 
               className="bg-black/80 text-white p-4 rounded-lg text-sm max-w-xs"
@@ -1219,6 +1611,8 @@ export default function WorldEditor({ onBackToGame }) {
                 <li>• <strong>Scroll wheel</strong> to zoom</li>
                 <li>• <strong>C</strong> to copy (single or group)</li>
                 <li>• <strong>V</strong> to paste (maintains layout)</li>
+                <li>• <strong>W</strong> toggle walkable</li>
+                <li>• <strong>A</strong> toggle above player</li>
                 <li>• <strong>Esc</strong> to clear selection</li>
               </ul>
             </div>
@@ -1258,7 +1652,11 @@ export default function WorldEditor({ onBackToGame }) {
       {/* Tile Selector Modal */}
       {showTileSelector && layers[currentLayer] && (
         <TileSelectorModal 
-          spriteSheet={layers[currentLayer].spriteSheet === 'tileset' ? 'Tileset_16x16.png' : 'Objects.png'}
+          spriteSheet={
+            layers[currentLayer].spriteSheet === 'tileset' ? 'Tileset_16x16.png' :
+            layers[currentLayer].spriteSheet === 'train' ? 'train.png' :
+            'Objects.png'
+          }
           onSelect={handleTileSelect}
           onClose={() => {
             setShowTileSelector(false);
@@ -1387,6 +1785,7 @@ function LayerManagerModal({ layers, currentLayer, onClose, onAddLayer, onRename
                 >
                   <option value="tileset">Tileset</option>
                   <option value="objects">Objects</option>
+                  <option value="train">Train</option>
                 </select>
                 
                 {layers.length > 1 && (

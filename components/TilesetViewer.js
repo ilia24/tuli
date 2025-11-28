@@ -23,12 +23,12 @@ export default function TilesetViewer() {
           frameHeight: 16,
         });
         
-        this.load.spritesheet('player', '/spritesheets/Player.png', {
+        this.load.spritesheet('objects', '/spritesheets/Objects.png', {
           frameWidth: 16,
           frameHeight: 16,
         });
         
-        this.load.spritesheet('objects', '/spritesheets/Objects.png', {
+        this.load.spritesheet('train', '/spritesheets/train.png', {
           frameWidth: 16,
           frameHeight: 16,
         });
@@ -46,9 +46,9 @@ export default function TilesetViewer() {
 
         // Define all sprite sheets to display
         const spritesheets = [
-          { key: 'player', name: 'Player.png', metadataKey: 'player' },
           { key: 'tileset', name: 'Tileset_16x16.png', metadataKey: 'tileset' },
           { key: 'objects', name: 'Objects.png', metadataKey: 'objects' },
+          { key: 'train', name: 'train.png', metadataKey: 'train' },
         ];
 
         const tileSize = 16;
