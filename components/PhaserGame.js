@@ -377,10 +377,10 @@ export default function PhaserGame() {
         // Create portals based on current world
         if (this.currentWorldKey === 'tutorial') {
           // Portal to Lava World
-          this.createPortal(28, 25, 'lavaWorld', 'Lava World', 0xff6600, 0xffaa00);
+          // this.createPortal(28, 25, 'lavaWorld', 'Lava World', 0xff6600, 0xffaa00);
         } else if (this.currentWorldKey === 'lavaWorld') {
           // Portal back to Tutorial
-          this.createPortal(5, 2, 'tutorial', 'Tutorial Island', 0x00ff00, 0x00aa00);
+          // this.createPortal(5, 2, 'tutorial', 'Tutorial Island', 0x00ff00, 0x00aa00);
         }
       }
 
