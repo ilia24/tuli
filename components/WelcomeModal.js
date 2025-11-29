@@ -36,7 +36,7 @@ export default function WelcomeModal() {
       transition={{ duration: 0.3 }}
     >
       <motion.div 
-        className="bg-linear-to-br from-purple-500 to-purple-700 rounded-3xl p-12 shadow-2xl max-w-lg w-[90%]"
+        className="bg-linear-to-br from-[#4a9a9b] to-[#3B7C7D] rounded-3xl p-12 shadow-2xl max-w-lg w-[90%]"
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -50 }}
@@ -103,7 +103,7 @@ export default function WelcomeModal() {
 
             <button 
               type="submit" 
-              className="mt-3 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-pink-400 to-red-400 text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
+              className="mt-3 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
             >
               {t.startButton}
             </button>

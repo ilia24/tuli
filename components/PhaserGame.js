@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getWorld, isTileWalkable, isTileAbovePlayer } from '../lib/worldConfig';
 
 const ZOOM_FACTOR = 2;
-const CAMERA_BOUNDS_PADDING = 12;
+const CAMERA_BOUNDS_PADDING = 30;
 
 // Sprite sheet tile sizes
 const SPRITE_SHEET_SIZES = {
@@ -18,6 +19,7 @@ const SPRITE_SHEET_SIZES = {
 export default function PhaserGame() {
   const gameRef = useRef(null);
   const phaserGameRef = useRef(null);
+  const [showTuliWelcome, setShowTuliWelcome] = useState(false);
   const [showTuliChat, setShowTuliChat] = useState(false);
   const [showGnomeChat, setShowGnomeChat] = useState(false);
   const [showDragonChat, setShowDragonChat] = useState(false);
@@ -119,6 +121,7 @@ export default function PhaserGame() {
         this.load.image('gnome', '/spritesheets/gnome.png');
         this.load.image('dragon-idle', '/spritesheets/dragon-idle.png');
         this.load.image('dragon-blink', '/spritesheets/dragon-idle-blink.png');
+        this.load.image('dragon-fire', '/spritesheets/dragon-fire.png');
         
         // Follower walking poses
         this.load.image('follower-front-walk', '/spritesheets/tuli/front-walk.png');
@@ -173,13 +176,15 @@ export default function PhaserGame() {
         this.textures.get('gnome').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('dragon-idle').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('dragon-blink').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('dragon-fire').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
         // Load the world configuration
         this.currentWorld = getWorld('tutorial');
 
-        // Create background (blue)
+        // Create background (world-specific color)
         const background = this.add.graphics();
-        background.fillStyle(0x2594D0, 1); // RGB(37, 148, 208)
+        const backgroundColor = this.currentWorldKey === 'lavaWorld' ? 0x3a3a3a : 0x2594D0; // Dark gray for lava, blue for tutorial
+        background.fillStyle(backgroundColor, 1);
         background.fillRect(0, 0, width, height);
 
         // Build world from configuration
@@ -256,8 +261,8 @@ export default function PhaserGame() {
           // Maximillion the Gnome at (39, 48)
           this.createNPC(39, 48, 'gnome', 'openGnomeChat');
         } else if (this.currentWorldKey === 'lavaWorld') {
-          // Vesuvvy the Dragon at (108, 13)
-          this.createDragon(108, 13);
+          // Vesuvvy the Dragon at (54, 17)
+          this.createDragon(54, 17);
         }
       }
 
@@ -338,19 +343,68 @@ export default function PhaserGame() {
         this.npcs.push(glow);
         this.npcs.push(dragon);
         
+        // Track dragon animation state
+        dragon.isAnimating = false;
+        
         // Random blink animation
         const scheduleNextBlink = () => {
           const delay = Phaser.Math.Between(2000, 5000); // Random 2-5 seconds
           this.time.delayedCall(delay, () => {
-            // Blink
-            dragon.setTexture('dragon-blink');
-            this.time.delayedCall(150, () => {
-              dragon.setTexture('dragon-idle');
+            if (!dragon.isAnimating) {
+              // Blink
+              dragon.setTexture('dragon-blink');
+              this.time.delayedCall(150, () => {
+                dragon.setTexture('dragon-idle');
+                scheduleNextBlink();
+              });
+            } else {
               scheduleNextBlink();
-            });
+            }
           });
         };
         scheduleNextBlink();
+        
+        // Random fire-shooting animation with vibration
+        const scheduleNextFire = () => {
+          const delay = Phaser.Math.Between(3000, 8000); // Random 3-8 seconds
+          this.time.delayedCall(delay, () => {
+            if (!dragon.isAnimating) {
+              dragon.isAnimating = true;
+              
+              // Store original position
+              const originalX = dragon.x;
+              const originalY = dragon.y;
+              
+              // Vibration effect
+              const vibrationTween = this.tweens.add({
+                targets: dragon,
+                x: originalX + Phaser.Math.Between(-3, 3),
+                y: originalY + Phaser.Math.Between(-2, 2),
+                duration: 50,
+                yoyo: true,
+                repeat: 5, // Vibrate 6 times total
+                ease: 'Sine.easeInOut'
+              });
+              
+              // Show fire sprite
+              dragon.setTexture('dragon-fire');
+              
+              // Return to idle after fire animation
+              this.time.delayedCall(350, () => {
+                dragon.setTexture('dragon-idle');
+                
+                // Ensure position is reset
+                dragon.setPosition(originalX, originalY);
+                
+                dragon.isAnimating = false;
+                scheduleNextFire();
+              });
+            } else {
+              scheduleNextFire();
+            }
+          });
+        };
+        scheduleNextFire();
         
         // Hover effect
         dragon.on('pointerover', () => {
@@ -484,7 +538,8 @@ export default function PhaserGame() {
         const height = this.scale.height;
         
         const background = this.add.graphics();
-        background.fillStyle(0x2594D0, 1);
+        const backgroundColor = this.currentWorldKey === 'lavaWorld' ? 0x3a3a3a : 0x2594D0; // Dark gray for lava, blue for tutorial
+        background.fillStyle(backgroundColor, 1);
         background.fillRect(0, 0, width, height);
         
         this.worldOffsetX = (width / 2) - (this.currentWorld.width * this.tileSize) / 2;
@@ -1257,6 +1312,15 @@ export default function PhaserGame() {
     };
   }, []);
 
+  // Show welcome modal 2 seconds after game loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowTuliWelcome(true);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleTravelToLavaWorld = () => {
     setShowGnomeChat(false);
     if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
@@ -1276,10 +1340,19 @@ export default function PhaserGame() {
         </div>
       )}
       
+      {/* Tuli Welcome Modal */}
+      <AnimatePresence>
+        {showTuliWelcome && (
+          <TuliWelcomeModal onClose={() => setShowTuliWelcome(false)} />
+        )}
+      </AnimatePresence>
+      
       {/* Tuli Chat Modal */}
-      {showTuliChat && (
-        <TuliChatModal onClose={() => setShowTuliChat(false)} />
-      )}
+      <AnimatePresence>
+        {showTuliChat && (
+          <TuliChatModal onClose={() => setShowTuliChat(false)} />
+        )}
+      </AnimatePresence>
       
       {/* Maximillion Chat Modal */}
       {showGnomeChat && (
@@ -1297,37 +1370,129 @@ export default function PhaserGame() {
   );
 }
 
-function TuliChatModal({ onClose }) {
+function TuliWelcomeModal({ onClose }) {
   return (
-    <div 
+    <motion.div 
       className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
       onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
     >
-      <div 
-        className="bg-white rounded-2xl p-6 max-w-md w-[90%] shadow-2xl"
+      <motion.div 
+        className="bg-white rounded-2xl p-6 max-w-lg w-[90%] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.8, opacity: 0, y: 50 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: 50 }}
+        transition={{ 
+          duration: 0.4, 
+          ease: [0.34, 1.56, 0.64, 1] // Bouncy ease
+        }}
       >
         <div className="flex items-start gap-4 mb-4">
-          <div 
-            className="w-16 h-16 bg-contain bg-no-repeat bg-center shrink-0"
+          <motion.div 
+            className="w-20 h-20 bg-contain bg-no-repeat bg-center shrink-0"
             style={{ backgroundImage: 'url(/spritesheets/tuli/avatar.png)' }}
+            initial={{ rotate: -10 }}
+            animate={{ rotate: 0 }}
+            transition={{ 
+              delay: 0.2,
+              duration: 0.5,
+              ease: "easeOut"
+            }}
           />
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Tuli says:</h3>
+            <motion.h3 
+              className="text-2xl font-bold text-[#3B7C7D] mb-3"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
+              Welcome to the Island of Feelings!
+            </motion.h3>
+            <motion.div
+              className="text-gray-700 space-y-2"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+            >
+              <p className="font-semibold text-gray-800">
+                Hello! I'm Tuli, your virtual friend. 🌟
+              </p>
+              <p>
+                I'll be with you on this adventure and many more to come!
+              </p>
+              <div className="mt-3 space-y-1.5 text-sm">
+                <p><span className="font-semibold">🖱️ Navigate:</span> Click anywhere to move around the island</p>
+                <p><span className="font-semibold">💬 Talk to me:</span> Click on me anytime to chat or ask questions</p>
+                <p><span className="font-semibold">👥 Meet others:</span> Look for glowing characters to interact with them</p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+        
+        <motion.button
+          onClick={onClose}
+          className="w-full bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white font-bold py-3 px-6 rounded-lg transition-all hover:opacity-90 hover:shadow-lg cursor-pointer"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          Let's explore!
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function TuliChatModal({ onClose }) {
+  return (
+    <motion.div 
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="bg-white rounded-2xl p-6 max-w-md w-[90%] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
+        <div className="flex items-start gap-4 mb-4">
+          <motion.div 
+            className="w-16 h-16 bg-contain bg-no-repeat bg-center shrink-0"
+            style={{ backgroundImage: 'url(/spritesheets/tuli/avatar.png)' }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+          />
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-[#3B7C7D] mb-2">Chat with Tuli</h3>
             <p className="text-gray-700">
-              Hi there! I'm Tuli, your friendly guide! Click around the world to explore and learn new things!
+              Chat interface coming soon! This is where you'll be able to have conversations with Tuli.
             </p>
           </div>
         </div>
         
-        <button
+        <motion.button
           onClick={onClose}
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
+          className="w-full bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white font-bold py-3 px-6 rounded-lg transition-colors hover:opacity-90 cursor-pointer"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
-          Thanks, Tuli!
-        </button>
-      </div>
-    </div>
+          Close
+        </motion.button>
+      </motion.div>
+    </motion.div>
   );
 }
 
