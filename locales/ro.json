@@ -6,7 +6,9 @@
     "lastNameLabel": "Care este numele tău de familie?",
     "lastNamePlaceholder": "Nume de familie",
     "languageLabel": "Alege limba ta",
-    "startButton": "Hai să jucăm!"
+    "startButton": "Hai să jucăm!",
+    "continueButton": "Continuă",
+    "startNewButton": "Începe Nou"
   },
   "languages": {
     "en": "Engleză",
@@ -16,6 +18,7 @@
   },
   "common": {
     "loading": "Se încarcă...",
+    "loadingWorld": "Se încarcă {worldName}...",
     "error": "Hopa! Ceva nu a mers bine"
   },
   "npcs": {
@@ -61,6 +64,8 @@
   },
   "blaze": {
     "name": "BLAZE spune:",
+    "chatTitle": "Ajută-l pe BLAZE!",
+    "chatSubtitle": "Misiune: Calmează Dragonul",
     "missionSeeWhat": "Vezi ce vrea BLAZE",
     "missionLocateRocks": "Găsește pietrele lui BLAZE ({count}/{total})",
     "missionTalkToBlaze": "Vorbește cu BLAZE",

@@ -97,7 +97,8 @@ export default function PhaserGame() {
       }
     };
     window.startWorldTransition = (worldName) => {
-      setLoadingText(`Loading ${worldName}...`);
+      const loadingText = translations?.common?.loadingWorld || 'Loading {worldName}...';
+      setLoadingText(loadingText.replace('{worldName}', worldName));
       setIsLoading(true);
     };
     window.endWorldTransition = () => {
@@ -2672,8 +2673,8 @@ function DragonMissionChatModal({ onClose, language, translations }) {
             transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
           />
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-[#3B7C7D]">Help BLAZE!</h3>
-            <p className="text-xs text-gray-500">Mission: Calm the Dragon</p>
+            <h3 className="text-xl font-bold text-[#3B7C7D]">{tb.chatTitle || "Help BLAZE!"}</h3>
+            <p className="text-xs text-gray-500">{tb.chatSubtitle || "Mission: Calm the Dragon"}</p>
           </div>
           <button
             onClick={onClose}

@@ -6,7 +6,9 @@
     "lastNameLabel": "Qual é o seu sobrenome?",
     "lastNamePlaceholder": "Sobrenome",
     "languageLabel": "Escolha seu idioma",
-    "startButton": "Vamos jogar!"
+    "startButton": "Vamos jogar!",
+    "continueButton": "Continuar",
+    "startNewButton": "Começar Novo"
   },
   "languages": {
     "en": "Inglês",
@@ -16,6 +18,7 @@
   },
   "common": {
     "loading": "Carregando...",
+    "loadingWorld": "Carregando {worldName}...",
     "error": "Ops! Algo deu errado"
   },
   "npcs": {
@@ -61,6 +64,8 @@
   },
   "blaze": {
     "name": "BLAZE diz:",
+    "chatTitle": "Ajude BLAZE!",
+    "chatSubtitle": "Missão: Acalmar o Dragão",
     "missionSeeWhat": "Veja o que BLAZE quer",
     "missionLocateRocks": "Localize as pedras de BLAZE ({count}/{total})",
     "missionTalkToBlaze": "Fale com BLAZE",

@@ -136,14 +136,14 @@ export default function WelcomeModal() {
                   type="submit" 
                   className="flex-1 px-4 sm:px-8 py-3 sm:py-4 text-base sm:text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
                 >
-                  Continue
+                  {t.continueButton}
                 </button>
                 <button 
                   type="button"
                   onClick={handleStartNew}
                   className="flex-1 px-4 sm:px-8 py-3 sm:py-4 text-base sm:text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#f59e0b] to-[#d97706] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
                 >
-                  Start New
+                  {t.startNewButton}
                 </button>
               </div>
             ) : (

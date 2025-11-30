@@ -6,7 +6,9 @@
     "lastNameLabel": "¿Cuál es tu apellido?",
     "lastNamePlaceholder": "Apellido",
     "languageLabel": "Elige tu idioma",
-    "startButton": "¡Vamos a jugar!"
+    "startButton": "¡Vamos a jugar!",
+    "continueButton": "Continuar",
+    "startNewButton": "Empezar Nuevo"
   },
   "languages": {
     "en": "Inglés",
@@ -16,6 +18,7 @@
   },
   "common": {
     "loading": "Cargando...",
+    "loadingWorld": "Cargando {worldName}...",
     "error": "¡Ups! Algo salió mal"
   },
   "npcs": {
@@ -61,6 +64,8 @@
   },
   "blaze": {
     "name": "BLAZE dice:",
+    "chatTitle": "¡Ayuda a BLAZE!",
+    "chatSubtitle": "Misión: Calmar al Dragón",
     "missionSeeWhat": "Ve qué quiere BLAZE",
     "missionLocateRocks": "Localiza las rocas de BLAZE ({count}/{total})",
     "missionTalkToBlaze": "Habla con BLAZE",

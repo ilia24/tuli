@@ -6,7 +6,9 @@
     "lastNameLabel": "What's your last name?",
     "lastNamePlaceholder": "Last name",
     "languageLabel": "Choose your language",
-    "startButton": "Let's Play!"
+    "startButton": "Let's Play!",
+    "continueButton": "Continue",
+    "startNewButton": "Start New"
   },
   "languages": {
     "en": "English",
@@ -16,6 +18,7 @@
   },
   "common": {
     "loading": "Loading...",
+    "loadingWorld": "Loading {worldName}...",
     "error": "Oops! Something went wrong"
   },
   "npcs": {
@@ -61,6 +64,8 @@
   },
   "blaze": {
     "name": "BLAZE says:",
+    "chatTitle": "Help BLAZE!",
+    "chatSubtitle": "Mission: Calm the Dragon",
     "missionSeeWhat": "See what BLAZE wants",
     "missionLocateRocks": "Locate BLAZE's rocks ({count}/{total})",
     "missionTalkToBlaze": "Talk to BLAZE",
