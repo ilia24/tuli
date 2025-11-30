@@ -20,6 +20,9 @@
   },
   "npcs": {
     "tuli": {
+      "name": "Tuli says:",
+      "chatTitle": "Chat with Tuli",
+      "chatSubtitle": "Your supportive friend",
       "greeting": "Hi there! I'm Tuli, your friendly guide! Click around the world to explore and learn new things!",
       "close": "Thanks, Tuli!",
       "welcomeTitle": "Welcome to the Island of Feelings!",
@@ -59,6 +62,8 @@
   },
   "blaze": {
     "name": "BLAZE says:",
+    "missionSeeWhat": "See what BLAZE wants",
+    "missionLocateRocks": "Locate BLAZE's rocks ({count}/{total})",
     "missionInitial": "Hey! 😮 Have you seen BLAZE? He looks really upset! What do you think we could do to help him calm down?",
     "angry": "Someone knocked over my rock collection that took me WEEKS to build! Im so MAD I could EXPLODE! Everything feels HOT and I want to ROAR!",
     "grateful": "Thank you so much for helping me calm down! 😊 That breathing exercise really helped. I feel so much better now! You're a great friend!",
@@ -68,7 +73,8 @@
     "helpButton": "Help BLAZE",
     "thankYouButton": "You're welcome, BLAZE! 🐉",
     "acceptButton": "I'll help you find your rocks!",
-    "searchButton": "I'll keep looking!"
+    "searchButton": "I'll keep looking!",
+    "happyButton": "Happy to help! 🐉"
   },
   "breathing": {
     "startButton": "🌬️ Start Breathing Exercise with BLAZE",

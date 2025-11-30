@@ -20,6 +20,9 @@
   },
   "npcs": {
     "tuli": {
+      "name": "Tuli spune:",
+      "chatTitle": "Discută cu Tuli",
+      "chatSubtitle": "Prietenul tău de sprijin",
       "greeting": "Salut! Sunt Tuli, ghidul tău prietenos! Dă click în jur pentru a explora și a învăța lucruri noi!",
       "close": "Mulțumesc, Tuli!",
       "welcomeTitle": "Bine ai venit pe Insula Sentimentelor!",
@@ -59,6 +62,8 @@
   },
   "blaze": {
     "name": "BLAZE spune:",
+    "missionSeeWhat": "Vezi ce vrea BLAZE",
+    "missionLocateRocks": "Găsește pietrele lui BLAZE ({count}/{total})",
     "missionInitial": "Hei! 😮 L-ai văzut pe BLAZE? Arată foarte supărat! Ce crezi că am putea face pentru a-l ajuta să se calmeze?",
     "angry": "Cineva mi-a doborât colecția de pietre care mi-a luat SĂPTĂMÂNI să o construiesc! Sunt atât de SUPĂRAT încât aș putea EXPLODA! Totul se simte FIERBINTE și vreau să RĂC!",
     "grateful": "Mulțumesc mult pentru că m-ai ajutat să mă calm! 😊 Exercițiul de respirație a ajutat cu adevărat. Mă simt mult mai bine acum! Ești un prieten minunat!",
@@ -68,7 +73,8 @@
     "helpButton": "Ajută-l pe BLAZE",
     "thankYouButton": "Cu plăcere, BLAZE! 🐉",
     "acceptButton": "Te voi ajuta să-ți găsești pietrele!",
-    "searchButton": "Voi continua să caut!"
+    "searchButton": "Voi continua să caut!",
+    "happyButton": "Bucuros să ajut! 🐉"
   },
   "breathing": {
     "startButton": "🌬️ Începe Exercițiul de Respirație cu BLAZE",

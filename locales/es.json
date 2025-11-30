@@ -20,6 +20,9 @@
   },
   "npcs": {
     "tuli": {
+      "name": "Tuli dice:",
+      "chatTitle": "Chatea con Tuli",
+      "chatSubtitle": "Tu amigo de apoyo",
       "greeting": "¡Hola! ¡Soy Tuli, tu guía amigable! ¡Haz clic alrededor del mundo para explorar y aprender cosas nuevas!",
       "close": "¡Gracias, Tuli!",
       "welcomeTitle": "¡Bienvenido a la Isla de los Sentimientos!",
@@ -59,6 +62,8 @@
   },
   "blaze": {
     "name": "BLAZE dice:",
+    "missionSeeWhat": "Ve qué quiere BLAZE",
+    "missionLocateRocks": "Localiza las rocas de BLAZE ({count}/{total})",
     "missionInitial": "¡Oye! 😮 ¿Has visto a BLAZE? ¡Se ve muy molesto! ¿Qué crees que podríamos hacer para ayudarlo a calmarse?",
     "angry": "¡Alguien derribó mi colección de rocas que me tomó SEMANAS construir! ¡Estoy tan ENOJADO que podría EXPLOTAR! ¡Todo se siente CALIENTE y quiero RUGIR!",
     "grateful": "¡Muchas gracias por ayudarme a calmarme! 😊 Ese ejercicio de respiración realmente ayudó. ¡Me siento mucho mejor ahora! ¡Eres un gran amigo!",
@@ -68,7 +73,8 @@
     "helpButton": "Ayudar a BLAZE",
     "thankYouButton": "¡De nada, BLAZE! 🐉",
     "acceptButton": "¡Te ayudaré a encontrar tus rocas!",
-    "searchButton": "¡Seguiré buscando!"
+    "searchButton": "¡Seguiré buscando!",
+    "happyButton": "¡Feliz de ayudar! 🐉"
   },
   "breathing": {
     "startButton": "🌬️ Iniciar Ejercicio de Respiración con BLAZE",

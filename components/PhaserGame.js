@@ -1867,7 +1867,8 @@ export default function PhaserGame() {
     if (!rockMission) return; // Safety check for old saved states
     
     if (rockMission.accepted && !rockMission.completed) {
-      setActiveMission(`Locate BLAZE's rocks (${rockMission.rocksFound}/${rockMission.totalRocks})`);
+      const missionText = translations?.blaze?.missionLocateRocks || "Locate BLAZE's rocks ({count}/{total})";
+      setActiveMission(missionText.replace('{count}', rockMission.rocksFound).replace('{total}', rockMission.totalRocks));
     } else if (rockMission.completed) {
       setActiveMission(null); // Clear mission when complete
     }
@@ -1967,7 +1968,7 @@ export default function PhaserGame() {
               }
               // Update game state to turn off Tuli glowing and set active mission
               updateGameState({ tuliGlowing: false });
-              setActiveMission('See what BLAZE wants');
+              setActiveMission(translations?.blaze?.missionSeeWhat || 'See what BLAZE wants');
               updateMission('blazeRockCollection', { discovered: true });
             }}
           />
@@ -2212,8 +2213,8 @@ function TuliChatModal({ onClose, language, translations }) {
             transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
           />
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-[#3B7C7D]">Chat with Tuli</h3>
-            <p className="text-xs text-gray-500">Your supportive friend</p>
+            <h3 className="text-xl font-bold text-[#3B7C7D]">{t.chatTitle || "Chat with Tuli"}</h3>
+            <p className="text-xs text-gray-500">{t.chatSubtitle || "Your supportive friend"}</p>
           </div>
         <button
           onClick={onClose}
@@ -2887,6 +2888,7 @@ function GnomeChatModal({ onClose, onTravel, isReturn = false, translations }) {
 
 function DragonChatModal({ onClose, translations }) {
   const { gameState, updateMission, setActiveMission } = useGameState();
+  const tb = translations?.blaze || {};
   const t = translations?.npcs?.dragon || {
     sad: "Rawr! I lost my rock collection and i cant stand it!",
     happy: "Thank you so much! You found all my precious rocks! I'm so happy!",
@@ -2906,37 +2908,39 @@ function DragonChatModal({ onClose, translations }) {
   // Determine which message to show
   const getMessage = () => {
     if (!isCalm) {
-      return "Someone knocked over my rock collection that took me WEEKS to build! Im so MAD I could EXPLODE! Everything feels HOT and I want to ROAR!";
+      return tb.angry || "Someone knocked over my rock collection that took me WEEKS to build! Im so MAD I could EXPLODE! Everything feels HOT and I want to ROAR!";
     }
     
     if (!rockMission.discovered) {
-      return "Thank you so much for helping me calm down! 😊 That breathing exercise really helped. I feel so much better now! You're a great friend!";
+      return tb.grateful || "Thank you so much for helping me calm down! 😊 That breathing exercise really helped. I feel so much better now! You're a great friend!";
     }
     
     if (!rockMission.accepted) {
-      return "Now that I'm calm, I can think clearly! 🤔 My precious rock collection is scattered all over the lava caves. I had 4 special rocks... Can you help me find them? They mean everything to me!";
+      return tb.askForHelp || "Now that I'm calm, I can think clearly! 🤔 My precious rock collection is scattered all over the lava caves. I had 4 special rocks... Can you help me find them? They mean everything to me!";
     }
     
     if (rockMission.rocksFound < rockMission.totalRocks) {
-      return `You're doing great! You've found ${rockMission.rocksFound} out of ${rockMission.totalRocks} rocks. Keep looking around the caves! 🔍`;
+      const searchText = tb.searching || "You're doing great! You've found {count} out of {total} rocks. Keep looking around the caves! 🔍";
+      return searchText.replace('{count}', rockMission.rocksFound).replace('{total}', rockMission.totalRocks);
     }
     
-    return "You found ALL my rocks! 🎉 Thank you so much! You're the best friend a dragon could ask for!";
+    return tb.complete || "You found ALL my rocks! 🎉 Thank you so much! You're the best friend a dragon could ask for!";
   };
 
   const getButtonText = () => {
-    if (!isCalm) return "I'll help you find them!";
-    if (!rockMission.discovered) return "You're welcome, BLAZE! 🐉";
-    if (!rockMission.accepted) return "I'll help you find your rocks!";
-    if (rockMission.rocksFound < rockMission.totalRocks) return "I'll keep looking!";
-    return "Happy to help! 🐉";
+    if (!isCalm) return tb.helpButton || "Help BLAZE";
+    if (!rockMission.discovered) return tb.thankYouButton || "You're welcome, BLAZE! 🐉";
+    if (!rockMission.accepted) return tb.acceptButton || "I'll help you find your rocks!";
+    if (rockMission.rocksFound < rockMission.totalRocks) return tb.searchButton || "I'll keep looking!";
+    return tb.happyButton || "Happy to help! 🐉";
   };
 
   const handleButtonClick = () => {
     if (isCalm && rockMission.discovered && !rockMission.accepted) {
       // Accept the mission
       updateMission('blazeRockCollection', { accepted: true });
-      setActiveMission(`Locate BLAZE's rocks (${rockMission.rocksFound}/${rockMission.totalRocks})`);
+      const missionText = tb.missionLocateRocks || "Locate BLAZE's rocks ({count}/{total})";
+      setActiveMission(missionText.replace('{count}', rockMission.rocksFound).replace('{total}', rockMission.totalRocks));
       
       // Spawn rocks in the world
       setTimeout(() => {
@@ -2977,7 +2981,7 @@ function DragonChatModal({ onClose, translations }) {
             <h3 className={`text-xl font-bold mb-2 ${
               isCalm ? (rockMission.completed ? 'text-green-600' : 'text-[#3B7C7D]') : 'text-orange-700'
             }`}>
-              BLAZE says:
+              {tb.name || "BLAZE says:"}
             </h3>
             <p className="text-gray-700">
               {getMessage()}
