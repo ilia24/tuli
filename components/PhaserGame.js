@@ -65,6 +65,18 @@ export default function PhaserGame() {
     window.openDragonChat = () => setShowDragonChat(true);
     window.setActiveMission = setActiveMission;
     window.updateMission = updateMission;
+    window.makeDragonHappy = () => {
+      // Direct access to change dragon sprite
+      if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
+        const scene = phaserGameRef.current.scene.scenes[0];
+        if (scene.dragon) {
+          console.log('Making dragon happy via window function');
+          scene.dragon.setTexture('dragon-happy');
+          scene.dragon.clearTint();
+          scene.dragon.isHappy = true;
+        }
+      }
+    };
     window.startWorldTransition = (worldName) => {
       setLoadingText(`Loading ${worldName}...`);
       setIsLoading(true);
@@ -687,19 +699,19 @@ export default function PhaserGame() {
             
             // Check if all rocks collected and haven't talked yet
             if (rockMission.allRocksFound && !rockMission.talkedToBlaze) {
-              console.log('Changing dragon to happy!');
+              console.log('All rocks found! Changing dragon to happy sprite');
               
-              // Change to happy sprite
-              dragon.setTexture('dragon-happy');
-              dragon.clearTint();
-              dragon.isHappy = true;
+              // Change to happy sprite immediately
+              if (window.makeDragonHappy) {
+                window.makeDragonHappy();
+              }
               
               // Mark as talked to
               if (window.updateMission) {
                 window.updateMission('blazeRockCollection', { talkedToBlaze: true });
               }
               
-              // Clear mission
+              // Clear mission immediately
               if (window.setActiveMission) {
                 window.setActiveMission(null);
               }
