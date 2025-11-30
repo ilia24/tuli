@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getWorld, isTileWalkable, isTileAbovePlayer } from '../lib/worldConfig';
+import { useGameState } from '../contexts/GameStateContext';
+import { DEV_CONFIG } from '../lib/config';
 
 const ZOOM_FACTOR = 2;
 const CAMERA_BOUNDS_PADDING = 30;
@@ -19,19 +21,45 @@ const SPRITE_SHEET_SIZES = {
 export default function PhaserGame() {
   const gameRef = useRef(null);
   const phaserGameRef = useRef(null);
+  const { gameState, updateGameState, updateMission, completeMission, setActiveMission } = useGameState();
+  const gameStateRef = useRef(gameState); // Ref to always have current game state
   const [showTuliWelcome, setShowTuliWelcome] = useState(false);
   const [showTuliChat, setShowTuliChat] = useState(false);
+  const [showDragonMissionChat, setShowDragonMissionChat] = useState(false);
   const [showGnomeChat, setShowGnomeChat] = useState(false);
+  const [showGnomeChatReturn, setShowGnomeChatReturn] = useState(false);
+  const [showMonkeyChat, setShowMonkeyChat] = useState(false);
   const [showDragonChat, setShowDragonChat] = useState(false);
+  const [showBreathingExercise, setShowBreathingExercise] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('');
+  const dragonGlowTimerRef = useRef(null);
+  const showDragonMissionChatRef = useRef(false);
+  const showBreathingExerciseRef = useRef(false);
+
+  // Keep gameStateRef in sync with gameState
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
+  // Keep refs in sync with modal states
+  useEffect(() => {
+    showDragonMissionChatRef.current = showDragonMissionChat;
+  }, [showDragonMissionChat]);
+
+  useEffect(() => {
+    showBreathingExerciseRef.current = showBreathingExercise;
+  }, [showBreathingExercise]);
 
   useEffect(() => {
     if (phaserGameRef.current || !gameRef.current) return;
     
     // Make controls available to Phaser
     window.openTuliChat = () => setShowTuliChat(true);
+    window.openDragonMissionChat = () => setShowDragonMissionChat(true);
     window.openGnomeChat = () => setShowGnomeChat(true);
+    window.openGnomeChatReturn = () => setShowGnomeChatReturn(true);
+    window.openMonkeyChat = () => setShowMonkeyChat(true);
     window.openDragonChat = () => setShowDragonChat(true);
     window.startWorldTransition = (worldName) => {
       setLoadingText(`Loading ${worldName}...`);
@@ -39,6 +67,36 @@ export default function PhaserGame() {
     };
     window.endWorldTransition = () => {
       setTimeout(() => setIsLoading(false), 500);
+    };
+    
+    // Expose game state to Phaser (using ref to always get current state)
+    window.getGameState = () => gameStateRef.current;
+    window.updateGameState = updateGameState;
+    window.updateMission = updateMission;
+    window.setActiveMission = setActiveMission;
+    window.openBreathingExercise = () => setShowBreathingExercise(true);
+    
+    // Helper function to collect a rock
+    window.collectRock = () => {
+      const currentState = gameStateRef.current;
+      const rockMission = currentState.missions.blazeRockCollection;
+      if (rockMission && rockMission.accepted && !rockMission.completed) {
+        const newRocksFound = rockMission.rocksFound + 1;
+        updateMission('blazeRockCollection', { rocksFound: newRocksFound });
+        
+        // Check if all rocks found
+        if (newRocksFound >= rockMission.totalRocks) {
+          updateMission('blazeRockCollection', { completed: true });
+          setActiveMission(null);
+        }
+      }
+    };
+    
+    // Helper function to spawn rocks in the scene
+    window.spawnRocks = () => {
+      if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
+        phaserGameRef.current.scene.scenes[0].createRocks();
+      }
     };
 
     // Main game scene
@@ -57,6 +115,12 @@ export default function PhaserGame() {
         
         // Make current world available globally for editor
         window.currentGameWorld = this.currentWorldKey;
+        
+        // Initialize game state with tutorial world
+        if (window.updateGameState) {
+          window.updateGameState({ currentWorld: this.currentWorldKey });
+        }
+        
         this.currentMoveTween = null; // Track current movement tween
         this.walkAnimationTimer = null; // Timer for walk animation
         this.followerMoveTween = null; // Track follower movement
@@ -65,6 +129,9 @@ export default function PhaserGame() {
         this.portals = []; // World transition portals
         this.frameCount = 0; // Frame counter for logging
         this.npcs = []; // NPCs in the world
+        this.dragonSeenTriggered = false; // Flag to prevent multiple dragon detection triggers
+        this.rocks = []; // Collectible rocks
+        this.collectedRockIds = new Set(); // Track which rocks have been collected
       }
 
       preload() {
@@ -98,6 +165,13 @@ export default function PhaserGame() {
           margin: 0,
         });
         
+        this.load.spritesheet('plane', '/spritesheets/plane.png', {
+          frameWidth: 16,
+          frameHeight: 16,
+          spacing: 0,
+          margin: 0,
+        });
+        
         // Load player sprites (64x64 images for each direction)
         // Standing poses
         this.load.image('player-front-stand', '/spritesheets/player/front-standing.png');
@@ -119,9 +193,14 @@ export default function PhaserGame() {
         
         // NPCs
         this.load.image('gnome', '/spritesheets/gnome.png');
+        this.load.image('monkey', '/spritesheets/monkey.png');
         this.load.image('dragon-idle', '/spritesheets/dragon-idle.png');
         this.load.image('dragon-blink', '/spritesheets/dragon-idle-blink.png');
+        this.load.image('dragon-happy', '/spritesheets/dragon-happy.png');
         this.load.image('dragon-fire', '/spritesheets/dragon-fire.png');
+        
+        // Collectibles
+        this.load.image('rock', '/spritesheets/rock.png');
         
         // Follower walking poses
         this.load.image('follower-front-walk', '/spritesheets/tuli/front-walk.png');
@@ -174,9 +253,14 @@ export default function PhaserGame() {
         
         // NPCs
         this.textures.get('gnome').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('monkey').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('dragon-idle').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('dragon-blink').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        this.textures.get('dragon-happy').setFilter(Phaser.Textures.FilterMode.NEAREST);
         this.textures.get('dragon-fire').setFilter(Phaser.Textures.FilterMode.NEAREST);
+        
+        // Collectibles
+        this.textures.get('rock').setFilter(Phaser.Textures.FilterMode.NEAREST);
 
         // Load the world configuration
         this.currentWorld = getWorld('tutorial');
@@ -260,13 +344,156 @@ export default function PhaserGame() {
         if (this.currentWorldKey === 'tutorial') {
           // Maximillion the Gnome at (39, 48)
           this.createNPC(39, 48, 'gnome', 'openGnomeChat');
+          // Monkey at (9, 21) - scaled down to half size
+          this.createNPC(9, 21, 'monkey', 'openMonkeyChat', 0.5);
         } else if (this.currentWorldKey === 'lavaWorld') {
-          // Vesuvvy the Dragon at (54, 17)
+          // BLAZE the Dragon at (54, 17)
           this.createDragon(54, 17);
+          // Maximillion the Gnome at (7, 10) - to travel back
+          this.createNPC(7, 10, 'gnome', 'openGnomeChatReturn');
+          
+          // Create rocks if mission is accepted
+          this.createRocks();
         }
       }
 
-      createNPC(gridX, gridY, spriteKey, chatFunction) {
+      createRocks() {
+        const gameState = window.getGameState();
+        const rockMission = gameState?.missions?.blazeRockCollection;
+        
+        // Only show rocks if mission is accepted and not completed
+        if (!rockMission || !rockMission.accepted || rockMission.completed) {
+          return;
+        }
+        
+        // Rock positions in lava world
+        const rockPositions = [
+          { id: 'rock1', x: 27, y: 13 },
+          { id: 'rock2', x: 67, y: 4 },
+          { id: 'rock3', x: 86, y: 17 },
+          { id: 'rock4', x: 105, y: 13 },
+        ];
+        
+        // Determine which rocks should already be collected based on rocksFound count
+        // If rocksFound is 2, rocks 1 and 2 are collected
+        for (let i = 0; i < rockMission.rocksFound && i < rockPositions.length; i++) {
+          this.collectedRockIds.add(rockPositions[i].id);
+        }
+        
+        rockPositions.forEach((pos) => {
+          // Skip if already collected
+          if (this.collectedRockIds.has(pos.id)) {
+            return;
+          }
+          
+          this.createRock(pos.x, pos.y, pos.id);
+        });
+      }
+
+      createRock(gridX, gridY, rockId) {
+        const rockX = this.worldOffsetX + (gridX * this.tileSize);
+        const rockY = this.worldOffsetY + (gridY * this.tileSize);
+        
+        // Create sparkle/glow effect (created first so it's behind rock)
+        const glow = this.add.circle(rockX, rockY, 15, 0xcc88ff, 0.4);
+        glow.setDepth(94);
+        
+        // Create the rock sprite
+        const rock = this.add.image(rockX, rockY, 'rock');
+        rock.setScale(0.6);
+        rock.setDepth(95); // Above ground, below player
+        rock.setInteractive();
+        rock.rockId = rockId;
+        rock.baseY = rockY; // Store base Y position
+        
+        // Store rock reference
+        rock.glowCircle = glow;
+        
+        // Add hover up/down animation - animate both rock and glow together
+        this.tweens.add({
+          targets: [rock, glow],
+          y: rockY - 5,
+          duration: 800,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        
+        // Add glow pulsing animation
+        this.tweens.add({
+          targets: glow,
+          scaleX: 1.4,
+          scaleY: 1.4,
+          alpha: 0.6,
+          duration: 1000,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        
+        // Hover effect
+        rock.on('pointerover', () => {
+          rock.setTint(0xffccff);
+          rock.setScale(0.7);
+        });
+        
+        rock.on('pointerout', () => {
+          rock.clearTint();
+          rock.setScale(0.6);
+        });
+        
+        // Click to collect
+        rock.on('pointerdown', (pointer) => {
+          if (pointer.leftButtonDown()) {
+            this.collectRock(rock);
+          }
+        });
+        
+        this.rocks.push(rock);
+      }
+
+      collectRock(rock) {
+        if (!rock || !rock.rockId || !rock.active) return;
+        
+        // Check if already collected
+        if (this.collectedRockIds.has(rock.rockId)) {
+          return;
+        }
+        
+        // Mark as collected immediately
+        this.collectedRockIds.add(rock.rockId);
+        rock.disableInteractive(); // Prevent double-clicking
+        
+        // Remove from rocks array
+        const index = this.rocks.indexOf(rock);
+        if (index > -1) {
+          this.rocks.splice(index, 1);
+        }
+        
+        // Play collection animation
+        this.tweens.add({
+          targets: [rock, rock.glowCircle],
+          scaleX: 1.5,
+          scaleY: 1.5,
+          alpha: 0,
+          y: rock.y - 30,
+          duration: 500,
+          ease: 'Back.easeIn',
+          onComplete: () => {
+            rock.destroy();
+            if (rock.glowCircle) {
+              rock.glowCircle.destroy();
+            }
+          }
+        });
+        
+        // Call global collect function
+        if (window.collectRock) {
+          window.collectRock();
+        }
+      }
+
+      createNPC(gridX, gridY, spriteKey, chatFunction, scale = 1) {
         const npcX = this.worldOffsetX + (gridX * this.tileSize);
         const npcY = this.worldOffsetY + (gridY * this.tileSize);
         
@@ -287,7 +514,7 @@ export default function PhaserGame() {
         });
         
         const npc = this.add.image(npcX, npcY, spriteKey);
-        npc.setScale(1);
+        npc.setScale(scale);
         npc.setDepth(98); // Just below follower
         npc.setInteractive();
         
@@ -320,10 +547,16 @@ export default function PhaserGame() {
         const dragonX = this.worldOffsetX + (gridX * this.tileSize);
         const dragonY = this.worldOffsetY + (gridY * this.tileSize);
         
-        // Create pulsing glow behind dragon
-        const glow = this.add.circle(dragonX, dragonY, 30, 0xff4400, 0.4);
+        // Check if breathing exercise is completed
+        const gameState = window.getGameState();
+        const isExerciseCompleted = gameState && gameState.missions.blazeBreathingExercise.completed;
+        
+        // Create pulsing glow behind dragon - only show if exercise is COMPLETED
+        const glow = this.add.circle(dragonX, dragonY, 30, 0xff4400, isExerciseCompleted ? 0.4 : 0);
         glow.setDepth(97);
         
+        // Only animate glow if exercise is completed
+        if (isExerciseCompleted) {
         this.tweens.add({
           targets: glow,
           scaleX: 1.3,
@@ -334,14 +567,22 @@ export default function PhaserGame() {
           repeat: -1,
           ease: 'Sine.easeInOut'
         });
+        }
         
         const dragon = this.add.image(dragonX, dragonY, 'dragon-idle');
         dragon.setScale(1.2);
         dragon.setDepth(98);
+        
+        // Only make dragon interactive if exercise is completed
+        if (isExerciseCompleted) {
         dragon.setInteractive();
+        }
         
         this.npcs.push(glow);
         this.npcs.push(dragon);
+        
+        // Store reference for later updates
+        dragon.glowCircle = glow;
         
         // Track dragon animation state
         dragon.isAnimating = false;
@@ -351,12 +592,12 @@ export default function PhaserGame() {
           const delay = Phaser.Math.Between(2000, 5000); // Random 2-5 seconds
           this.time.delayedCall(delay, () => {
             if (!dragon.isAnimating) {
-              // Blink
-              dragon.setTexture('dragon-blink');
-              this.time.delayedCall(150, () => {
-                dragon.setTexture('dragon-idle');
-                scheduleNextBlink();
-              });
+            // Blink
+            dragon.setTexture('dragon-blink');
+            this.time.delayedCall(150, () => {
+              dragon.setTexture('dragon-idle');
+              scheduleNextBlink();
+            });
             } else {
               scheduleNextBlink();
             }
@@ -366,6 +607,12 @@ export default function PhaserGame() {
         
         // Random fire-shooting animation with vibration
         const scheduleNextFire = () => {
+          // Check if breathing exercise is completed - if so, don't fire
+          const gameState = window.getGameState();
+          if (gameState && gameState.missions.blazeBreathingExercise.completed) {
+            return; // Dragon is calm now, no more fire
+          }
+          
           const delay = Phaser.Math.Between(3000, 8000); // Random 3-8 seconds
           this.time.delayedCall(delay, () => {
             if (!dragon.isAnimating) {
@@ -406,7 +653,8 @@ export default function PhaserGame() {
         };
         scheduleNextFire();
         
-        // Hover effect
+        // Hover and click effects - only add if exercise is completed
+        if (isExerciseCompleted) {
         dragon.on('pointerover', () => {
           dragon.setTint(0xffaa66);
         });
@@ -420,11 +668,92 @@ export default function PhaserGame() {
           if (pointer.leftButtonDown()) {
             this.clickedOnTuli = true;
             
-            if (window.openDragonChat) {
-              window.openDragonChat();
+            // Check rocks collected via GameState
+            const gameState = window.gameState || { rocksCollected: 0 };
+            
+            if (gameState.rocksCollected >= 4) {
+              // All rocks found - show thank you and change to happy
+              dragon.setTexture('dragon-happy');
+              dragon.clearTint();
+              
+              if (window.openDragonChat) {
+                window.openDragonChat();
+              }
+              
+              // Clear mission text after modal closes
+              setTimeout(() => {
+                if (window.setMissionText) {
+                  window.setMissionText('');
+                }
+              }, 100);
+            } else {
+              // Not all rocks found yet
+              if (window.openDragonChat) {
+                window.openDragonChat();
+              }
             }
           }
         });
+        
+        // Store dragon reference for updates
+        this.dragon = dragon;
+      }
+      }
+      
+      enableDragonGlow() {
+        console.log('Enabling dragon glow!');
+        // Find dragon in NPCs and enable its glow and interactivity
+        const dragonNPC = this.npcs.find(npc => npc.texture && npc.texture.key && npc.texture.key.includes('dragon'));
+        console.log('Found dragon NPC:', dragonNPC);
+        console.log('Dragon has glowCircle:', !!dragonNPC?.glowCircle);
+        
+        if (dragonNPC && dragonNPC.glowCircle) {
+          // Kill any existing tweens first
+          this.tweens.killTweensOf(dragonNPC.glowCircle);
+          
+          // Enable glow with warm, welcoming color (changed from angry red/orange to friendly yellow)
+          dragonNPC.glowCircle.setFillStyle(0xffdd00, 0.5); // Yellow glow for happy dragon
+          dragonNPC.glowCircle.setAlpha(0.6);
+          this.tweens.add({
+            targets: dragonNPC.glowCircle,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            alpha: 0.8,
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+          
+          console.log('Dragon glow enabled with happy yellow color!');
+          
+          // Make dragon interactive if not already
+          if (!dragonNPC.input || !dragonNPC.input.enabled) {
+            dragonNPC.setInteractive();
+            
+            // Add hover effect
+            dragonNPC.on('pointerover', () => {
+              dragonNPC.setTint(0xffaa66);
+            });
+            
+            dragonNPC.on('pointerout', () => {
+              dragonNPC.clearTint();
+            });
+            
+            // Click to open chat (happy message)
+            dragonNPC.on('pointerdown', (pointer) => {
+              if (pointer.leftButtonDown()) {
+                this.clickedOnTuli = true;
+                
+                if (window.openDragonChat) {
+                  window.openDragonChat();
+                }
+              }
+            });
+          }
+        } else {
+          console.error('Could not enable dragon glow - dragon or glowCircle not found');
+        }
       }
 
       createPortals() {
@@ -516,6 +845,11 @@ export default function PhaserGame() {
         this.children.removeAll();
         this.portals = [];
         this.npcs = [];
+        this.rocks = [];
+        this.collectedRockIds.clear();
+        
+        // Reset dragon detection flag when changing worlds
+        this.dragonSeenTriggered = false;
         
         // Stop all movement
         this.tweens.killAll();
@@ -532,6 +866,11 @@ export default function PhaserGame() {
         
         // Update global reference for editor
         window.currentGameWorld = worldKey;
+        
+        // Update game state with new world
+        if (window.updateGameState) {
+          window.updateGameState({ currentWorld: worldKey });
+        }
         
         // Recreate everything
         const width = this.scale.width;
@@ -552,6 +891,23 @@ export default function PhaserGame() {
         
         this.createPlayer(spawnX, spawnY);
         this.createFollower(spawnX - 32, spawnY);
+        
+        // Restore glows if needed when returning to lava world
+        if (worldKey === 'lavaWorld') {
+          const gameState = window.getGameState();
+          if (gameState && gameState.seenDragon) {
+            if (!gameState.missions.blazeBreathingExercise.completed) {
+              // Mission incomplete - show Tuli glow
+              this.setTuliGlow(true);
+              this.dragonSeenTriggered = true; // Set flag so we don't re-trigger detection
+            } else {
+              // Mission completed - show dragon glow instead
+              this.time.delayedCall(500, () => {
+                this.enableDragonGlow();
+              });
+            }
+          }
+        }
         
         this.targetMarker = this.add.circle(0, 0, 8, 0xFFFF00, 0);
         this.targetMarker.setStrokeStyle(2, 0xFFFF00);
@@ -579,6 +935,11 @@ export default function PhaserGame() {
       }
 
       createFollower(x, y) {
+        // Create glow behind Tuli (initially hidden)
+        this.tuliGlow = this.add.circle(x, y, 25, 0x9CD3B2, 0);
+        this.tuliGlow.setDepth(98);
+        this.tuliGlow.setStrokeStyle(2, 0x9CD3B2, 0);
+        
         // Create follower sprite (Tuli mascot)
         this.followerSprite = this.add.image(x, y, 'follower-front-stand');
         this.followerSprite.setScale(0.4);
@@ -607,11 +968,60 @@ export default function PhaserGame() {
             // Set flag to prevent movement
             this.clickedOnTuli = true;
             
-            if (window.openTuliChat) {
+            // Check if we should open dragon mission chat
+            const gameState = window.getGameState();
+            console.log('Tuli clicked! Game state:', gameState);
+            console.log('Should open dragon mission?', gameState && gameState.seenDragon && !gameState.missions.blazeBreathingExercise.completed);
+            console.log('window.openDragonMissionChat exists?', !!window.openDragonMissionChat);
+            
+            if (gameState && gameState.seenDragon && !gameState.missions.blazeBreathingExercise.completed) {
+              console.log('Opening dragon mission chat!');
+              if (window.openDragonMissionChat) {
+                window.openDragonMissionChat();
+              } else {
+                console.error('window.openDragonMissionChat is not defined!');
+              }
+            } else if (window.openTuliChat) {
+              console.log('Opening regular Tuli chat!');
               window.openTuliChat();
             }
           }
         });
+      }
+
+      setTuliGlow(enabled) {
+        if (!this.tuliGlow) {
+          console.log('Warning: tuliGlow object not found!');
+          return;
+        }
+        
+        if (enabled) {
+          console.log('Enabling Tuli glow!');
+          // Show and animate glow
+          this.tuliGlow.setAlpha(0.5);
+          this.tuliGlow.setStrokeStyle(3, 0x9CD3B2, 0.8);
+          
+          // Kill any existing tween first
+          this.tweens.killTweensOf(this.tuliGlow);
+          
+          this.tweens.add({
+            targets: this.tuliGlow,
+            scaleX: 1.4,
+            scaleY: 1.4,
+            alpha: 0.7,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        } else {
+          console.log('Disabling Tuli glow');
+          // Hide glow and stop animation
+          this.tweens.killTweensOf(this.tuliGlow);
+          this.tuliGlow.setAlpha(0);
+          this.tuliGlow.setStrokeStyle(2, 0x9CD3B2, 0);
+          this.tuliGlow.setScale(1);
+        }
       }
 
       updatePlayerDirection(targetX, targetY, isMoving = false) {
@@ -1095,6 +1505,64 @@ export default function PhaserGame() {
       update() {
         this.frameCount++;
         
+        // Update Tuli glow position to follow follower
+        if (this.tuliGlow && this.followerSprite) {
+          this.tuliGlow.setPosition(this.followerSprite.x, this.followerSprite.y);
+        }
+        
+        // Check if dragon is in viewport (lava world only) - only check once per second
+        if (this.currentWorldKey === 'lavaWorld' && this.frameCount % 60 === 0 && !this.dragonSeenTriggered) {
+          const gameState = window.getGameState();
+          if (gameState && !gameState.seenDragon && !gameState.missions.blazeBreathingExercise.completed) {
+            // Find dragon in NPCs
+            const dragonNPC = this.npcs.find(npc => npc.texture && npc.texture.key && npc.texture.key.includes('dragon'));
+            if (dragonNPC) {
+              const camera = this.cameras.main;
+              const worldView = camera.worldView;
+              
+              // Check if dragon is in camera view
+              if (Phaser.Geom.Rectangle.Contains(worldView, dragonNPC.x, dragonNPC.y)) {
+                console.log('Dragon detected in viewport! Triggering mission...');
+                // Set flag immediately to prevent re-triggering
+                this.dragonSeenTriggered = true;
+                
+                // Dragon is visible! Only update state once
+                if (window.updateGameState && window.updateMission) {
+                  window.updateGameState({ seenDragon: true, tuliGlowing: true });
+                  window.updateMission('blazeBreathingExercise', { discovered: true });
+                }
+                
+                // Turn on Tuli glow
+                this.setTuliGlow(true);
+                
+                // Set timer for auto-opening chat after 15 seconds
+                if (window.setDragonGlowTimer) {
+                  window.setDragonGlowTimer();
+                }
+              }
+            }
+          }
+        }
+        
+        // Check for rock collection (walk-over detection)
+        if (this.playerSprites && this.rocks.length > 0) {
+          this.rocks.forEach((rock) => {
+            if (!rock.active) return; // Skip if rock is being destroyed
+            
+            const distance = Phaser.Math.Distance.Between(
+              this.playerSprites.x,
+              this.playerSprites.y,
+              rock.x,
+              rock.y
+            );
+            
+            // Collect if within 16 pixels
+            if (distance < 16) {
+              this.collectRock(rock);
+            }
+          });
+        }
+        
         // Log player grid position every second
         if (this.playerSprites && this.frameCount % 60 === 0) {
           const gridPos = this.worldToGrid(this.playerSprites.x, this.playerSprites.y);
@@ -1302,9 +1770,20 @@ export default function PhaserGame() {
     return () => {
       window.openTuliChat = null;
       window.openGnomeChat = null;
+      window.openGnomeChatReturn = null;
+      window.openMonkeyChat = null;
       window.openDragonChat = null;
+      window.openDragonMissionChat = null;
+      window.openBreathingExercise = null;
       window.startWorldTransition = null;
       window.endWorldTransition = null;
+      window.getGameState = null;
+      window.updateGameState = null;
+      window.updateMission = null;
+      window.setActiveMission = null;
+      window.setDragonGlowTimer = null;
+      window.collectRock = null;
+      window.spawnRocks = null;
       if (phaserGameRef.current) {
         phaserGameRef.current.destroy(true);
         phaserGameRef.current = null;
@@ -1321,6 +1800,62 @@ export default function PhaserGame() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle dragon glow timer for auto-opening chat - only set up once
+  useEffect(() => {
+    window.setDragonGlowTimer = () => {
+      // Clear any existing timer
+      if (dragonGlowTimerRef.current) {
+        clearTimeout(dragonGlowTimerRef.current);
+      }
+      
+      // Set 15 second timer to auto-open dragon mission chat
+      dragonGlowTimerRef.current = setTimeout(() => {
+        // Check latest game state when timer fires
+        const currentState = window.getGameState();
+        // Only open if mission is not completed AND chat/exercise is not already open
+        if (currentState && 
+            !currentState.missions.blazeBreathingExercise.completed &&
+            !showDragonMissionChatRef.current &&
+            !showBreathingExerciseRef.current) {
+          console.log('Auto-opening dragon mission chat after 15 seconds');
+          setShowDragonMissionChat(true);
+        } else {
+          console.log('Skipping auto-open - chat or exercise already open');
+        }
+      }, 15000);
+    };
+
+    return () => {
+      if (dragonGlowTimerRef.current) {
+        clearTimeout(dragonGlowTimerRef.current);
+      }
+    };
+  }, []); // Empty dependency array - only run once on mount
+
+  // Reset Tuli glow when leaving lava world (but keep seenDragon true)
+  useEffect(() => {
+    if (gameState.currentWorld !== 'lavaWorld' && gameState.tuliGlowing) {
+      // Only turn off the glow, don't reset seenDragon (we want to remember they saw the dragon)
+      updateGameState({ tuliGlowing: false });
+      // Tell Phaser to turn off glow
+      if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
+        phaserGameRef.current.scene.scenes[0].setTuliGlow(false);
+      }
+    }
+  }, [gameState.currentWorld, gameState.tuliGlowing, updateGameState]); // updateGameState is now memoized and stable
+
+  // Update mission text when rocks are found
+  useEffect(() => {
+    const rockMission = gameState.missions.blazeRockCollection;
+    if (!rockMission) return; // Safety check for old saved states
+    
+    if (rockMission.accepted && !rockMission.completed) {
+      setActiveMission(`Locate BLAZE's rocks (${rockMission.rocksFound}/${rockMission.totalRocks})`);
+    } else if (rockMission.completed) {
+      setActiveMission(null); // Clear mission when complete
+    }
+  }, [gameState.missions.blazeRockCollection, setActiveMission]);
+
   const handleTravelToLavaWorld = () => {
     setShowGnomeChat(false);
     if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
@@ -1328,9 +1863,36 @@ export default function PhaserGame() {
     }
   };
 
+  const handleTravelToTutorial = () => {
+    setShowGnomeChatReturn(false);
+    if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
+      phaserGameRef.current.scene.scenes[0].transitionToWorld('tutorial');
+    }
+  };
+
   return (
     <>
       <div ref={gameRef} className="w-full h-full" />
+      
+      {/* Mission Card */}
+      {gameState.activeMission && (
+        <motion.div 
+          className="fixed top-2 left-2 z-9999 pointer-events-auto"
+          initial={{ x: -300, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -300, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        >
+          <div className="bg-white/85 backdrop-blur-sm rounded-xl shadow-2xl p-3 border-2 border-[#9CD3B2]">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mission</span>
+            </div>
+            <div className="text-base font-bold text-gray-800 mt-0.5">
+              {gameState.activeMission}
+            </div>
+          </div>
+        </motion.div>
+      )}
       
       {/* Loading Screen */}
       {isLoading && (
@@ -1349,23 +1911,74 @@ export default function PhaserGame() {
       
       {/* Tuli Chat Modal */}
       <AnimatePresence>
-        {showTuliChat && (
-          <TuliChatModal onClose={() => setShowTuliChat(false)} />
+      {showTuliChat && (
+        <TuliChatModal onClose={() => setShowTuliChat(false)} />
+      )}
+      </AnimatePresence>
+      
+      {/* Dragon Mission Chat Modal */}
+      <AnimatePresence>
+        {showDragonMissionChat && (
+          <DragonMissionChatModal onClose={() => setShowDragonMissionChat(false)} />
+        )}
+      </AnimatePresence>
+      
+      {/* Breathing Exercise Modal */}
+      <AnimatePresence>
+        {showBreathingExercise && (
+          <BreathingExerciseModal 
+            onClose={() => setShowBreathingExercise(false)}
+            onComplete={() => {
+              console.log('onComplete callback triggered!');
+              // Enable dragon glow and disable Tuli glow after breathing exercise
+              if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
+                console.log('Enabling dragon glow and disabling Tuli glow...');
+                phaserGameRef.current.scene.scenes[0].enableDragonGlow();
+                phaserGameRef.current.scene.scenes[0].setTuliGlow(false);
+              }
+              // Update game state to turn off Tuli glowing and set active mission
+              updateGameState({ tuliGlowing: false });
+              setActiveMission('See what BLAZE wants');
+              updateMission('blazeRockCollection', { discovered: true });
+            }}
+          />
         )}
       </AnimatePresence>
       
       {/* Maximillion Chat Modal */}
+      <AnimatePresence>
       {showGnomeChat && (
         <GnomeChatModal 
           onClose={() => setShowGnomeChat(false)}
           onTravel={handleTravelToLavaWorld}
         />
       )}
+      </AnimatePresence>
       
-      {/* Vesuvvy Chat Modal */}
+      {/* Maximillion Return Chat Modal */}
+      <AnimatePresence>
+        {showGnomeChatReturn && (
+          <GnomeChatModal 
+            onClose={() => setShowGnomeChatReturn(false)}
+            onTravel={handleTravelToTutorial}
+            isReturn={true}
+          />
+        )}
+      </AnimatePresence>
+      
+      {/* Monkey Chat Modal */}
+      <AnimatePresence>
+      {showMonkeyChat && (
+        <MonkeyChatModal onClose={() => setShowMonkeyChat(false)} />
+      )}
+      </AnimatePresence>
+      
+      {/* BLAZE Chat Modal */}
+      <AnimatePresence>
       {showDragonChat && (
         <DragonChatModal onClose={() => setShowDragonChat(false)} />
       )}
+      </AnimatePresence>
     </>
   );
 }
@@ -1450,6 +2063,829 @@ function TuliWelcomeModal({ onClose }) {
 }
 
 function TuliChatModal({ onClose }) {
+  // Get initial message based on current world
+  const getInitialMessage = () => {
+    const currentWorld = window.currentGameWorld || 'tutorial';
+    
+    if (currentWorld === 'lavaWorld') {
+      return "Hi there! 🔥 Its HOT in here! Have you met BLAZE yet? He seems pretty upset about his rocks. How are YOU feeling?";
+    } else {
+      return "Hi friend! 🌊 Welcome to the Island of Feelings! The breeze feels nice here, doesn't it? How are you doing today?";
+    }
+  };
+
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: getInitialMessage() }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput('');
+    
+    // Add user message to chat
+    const newMessages = [...messages, { role: 'user', content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      // Get world context from global
+      const worldContext = {
+        worldKey: window.currentGameWorld || 'tutorial'
+      };
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newMessages,
+          worldContext
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.message) {
+        setMessages([...newMessages, { role: 'assistant', content: data.message }]);
+      } else {
+        setMessages([...newMessages, { 
+          role: 'assistant', 
+          content: "I'm having trouble connecting right now. Can you try again?" 
+        }]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages([...newMessages, { 
+        role: 'assistant', 
+        content: "Oops! Something went wrong. Let's try again!" 
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  return (
+    <motion.div 
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="bg-white rounded-2xl p-6 max-w-lg w-[90%] h-[600px] max-h-[80vh] shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+          <motion.div 
+            className="w-12 h-12 bg-contain bg-no-repeat bg-center shrink-0"
+            style={{ backgroundImage: 'url(/spritesheets/tuli/avatar.png)' }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+          />
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-[#3B7C7D]">Chat with Tuli</h3>
+            <p className="text-xs text-gray-500">Your supportive friend</p>
+          </div>
+        <button
+          onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+        >
+            ×
+        </button>
+      </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto mb-4 space-y-3">
+          {messages.map((msg, idx) => (
+            <motion.div
+              key={idx}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                msg.role === 'user' 
+                  ? 'bg-[#9CD3B2] text-white' 
+                  : 'bg-gray-100 text-gray-800'
+              }`}>
+                {msg.content}
+    </div>
+            </motion.div>
+          ))}
+          {isLoading && (
+            <motion.div
+              className="flex justify-start"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div className="bg-gray-100 text-gray-800 rounded-2xl px-4 py-2">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message..."
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9CD3B2] focus:border-transparent text-gray-800 placeholder:text-gray-500"
+            disabled={isLoading}
+          />
+          <motion.button
+            onClick={sendMessage}
+            disabled={!input.trim() || isLoading}
+            className="bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white font-bold px-6 py-3 rounded-xl transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            whileHover={{ scale: input.trim() && !isLoading ? 1.05 : 1 }}
+            whileTap={{ scale: input.trim() && !isLoading ? 0.95 : 1 }}
+          >
+            Send
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function DragonMissionChatModal({ onClose }) {
+  const { gameState, updateGameState } = useGameState();
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: 'Hey! 😮 Have you seen BLAZE? He looks really upset! What do you think we could do to help him calm down?' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showBreathingButton, setShowBreathingButton] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput('');
+    
+    const newMessages = [...messages, { role: 'user', content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const worldContext = {
+        worldKey: 'lavaWorld'
+      };
+
+      const missionContext = {
+        dragonBreathingExercise: true,
+        completed: gameState.missions.blazeBreathingExercise.completed
+      };
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newMessages,
+          worldContext,
+          missionContext
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.message) {
+        setMessages([...newMessages, { role: 'assistant', content: data.message }]);
+        
+        // Check for action to start breathing exercise
+        if (data.action === 'START_BREATHING_EXERCISE') {
+          setShowBreathingButton(true);
+        }
+      } else {
+        setMessages([...newMessages, { 
+          role: 'assistant', 
+          content: "I'm having trouble connecting right now. Can you try again?" 
+        }]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages([...newMessages, { 
+        role: 'assistant', 
+        content: "Oops! Something went wrong. Let's try again!" 
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const handleStartBreathingExercise = () => {
+    onClose();
+    // Trigger breathing exercise modal
+    if (window.openBreathingExercise) {
+      window.openBreathingExercise();
+    }
+  };
+
+  return (
+    <motion.div 
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="bg-white rounded-2xl p-6 max-w-lg w-[90%] h-[600px] max-h-[80vh] shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+          <motion.div 
+            className="w-12 h-12 bg-contain bg-no-repeat bg-center shrink-0"
+            style={{ backgroundImage: 'url(/spritesheets/tuli/avatar.png)' }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+          />
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-[#3B7C7D]">Help BLAZE!</h3>
+            <p className="text-xs text-gray-500">Mission: Calm the Dragon</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto mb-4 space-y-3">
+          {messages.map((msg, idx) => (
+            <motion.div
+              key={idx}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                msg.role === 'user' 
+                  ? 'bg-[#9CD3B2] text-white' 
+                  : 'bg-gray-100 text-gray-800'
+              }`}>
+                {msg.content}
+              </div>
+            </motion.div>
+          ))}
+          {isLoading && (
+            <motion.div
+              className="flex justify-start"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div className="bg-gray-100 text-gray-800 rounded-2xl px-4 py-2">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input or Breathing Exercise Button */}
+        {showBreathingButton ? (
+          <motion.button
+            onClick={handleStartBreathingExercise}
+            className="w-full bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white font-bold py-4 px-6 rounded-xl transition-opacity hover:opacity-90"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            🌬️ Start Breathing Exercise with BLAZE
+          </motion.button>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9CD3B2] focus:border-transparent text-gray-800 placeholder:text-gray-500"
+              disabled={isLoading}
+            />
+            <motion.button
+              onClick={sendMessage}
+              disabled={!input.trim() || isLoading}
+              className="bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white font-bold px-6 py-3 rounded-xl transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              whileHover={{ scale: input.trim() && !isLoading ? 1.05 : 1 }}
+              whileTap={{ scale: input.trim() && !isLoading ? 0.95 : 1 }}
+            >
+              Send
+            </motion.button>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function BreathingExerciseModal({ onClose, onComplete }) {
+  const { completeMission } = useGameState();
+  const [phase, setPhase] = useState('intro'); // intro, inhale, hold, exhale, complete
+  const [count, setCount] = useState(0);
+  const [breathCycle, setBreathCycle] = useState(0);
+  const [volcanicMeter, setVolcanicMeter] = useState(100);
+  const totalCycles = 3;
+
+  useEffect(() => {
+    if (phase === 'intro') return;
+    if (phase === 'complete') return;
+
+    let duration = 0;
+    if (phase === 'inhale') duration = 4;
+    if (phase === 'hold') duration = 4;
+    if (phase === 'exhale') duration = 6;
+
+    if (count < duration) {
+      const timer = setTimeout(() => {
+        setCount(count + 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      // Move to next phase
+      if (phase === 'inhale') {
+        setPhase('hold');
+        setCount(0);
+      } else if (phase === 'hold') {
+        setPhase('exhale');
+        setCount(0);
+      } else if (phase === 'exhale') {
+        // Reduce volcanic meter
+        setVolcanicMeter(prev => Math.max(0, prev - 33));
+        
+        if (breathCycle + 1 >= totalCycles) {
+          setPhase('complete');
+        } else {
+          setBreathCycle(breathCycle + 1);
+          setPhase('inhale');
+          setCount(0);
+        }
+      }
+    }
+  }, [phase, count, breathCycle]);
+
+  const startExercise = () => {
+    setPhase('inhale');
+    setCount(0);
+  };
+
+  const handleComplete = () => {
+    console.log('Breathing exercise completed!');
+    completeMission('blazeBreathingExercise');
+    if (onComplete) {
+      console.log('Calling onComplete callback to enable dragon glow...');
+      onComplete();
+    }
+    onClose();
+  };
+
+  // Auto-complete if dev flag is enabled
+  useEffect(() => {
+    if (DEV_CONFIG.skipBreathingExercise) {
+      console.log('DEV MODE: Auto-completing breathing exercise');
+      setTimeout(() => {
+        handleComplete();
+      }, 500); // Small delay to show modal briefly
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getPhaseText = () => {
+    if (phase === 'inhale') return 'Breathe IN cool air...';
+    if (phase === 'hold') return 'Hold your breath...';
+    if (phase === 'exhale') return 'Breathe OUT hot air slowly...';
+    return '';
+  };
+
+  const getPhaseColor = () => {
+    if (phase === 'inhale') return '#60a5fa'; // Blue
+    if (phase === 'hold') return '#a78bfa'; // Purple
+    if (phase === 'exhale') return '#f87171'; // Red
+    return '#9CD3B2';
+  };
+
+  const getCircleScale = () => {
+    if (phase === 'inhale') {
+      return 1 + (count / 4) * 0.5; // Grow from 1 to 1.5
+    }
+    if (phase === 'hold') {
+      return 1.5; // Stay large
+    }
+    if (phase === 'exhale') {
+      return 1.5 - (count / 6) * 0.5; // Shrink from 1.5 to 1
+    }
+    return 1;
+  };
+
+  return (
+    <motion.div 
+      className="fixed inset-0 bg-black/70 flex justify-center items-center z-10001 pointer-events-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="bg-linear-to-br from-orange-50 to-red-50 rounded-2xl p-8 max-w-lg w-[90%] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ duration: 0.4, type: "spring" }}
+      >
+        {phase === 'intro' && (
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-orange-700 mb-4">🌋 The Dragon's Breath</h2>
+            <div className="bg-white rounded-xl p-6 mb-6">
+              <p className="text-gray-800 mb-4 text-lg">
+                Let's help BLAZE cool down with the <strong>Dragon's Breath</strong> technique!
+              </p>
+              <div className="text-left space-y-2 text-gray-700">
+                <p>🌬️ <strong>Breathe IN</strong> cool air (4 counts)</p>
+                <p>⏸️ <strong>Hold</strong> your breath (4 counts)</p>
+                <p>🔥 <strong>Breathe OUT</strong> hot air slowly (6 counts)</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 italic mb-6">
+              "Deep breathing cools down our angry fire inside"
+            </p>
+            <motion.button
+              onClick={startExercise}
+              className="w-full bg-linear-to-br from-orange-500 to-red-500 text-white font-bold py-4 px-6 rounded-xl text-xl"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Start Breathing Exercise
+            </motion.button>
+          </div>
+        )}
+
+        {phase !== 'intro' && phase !== 'complete' && (
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-orange-700 mb-2">
+              Breath {breathCycle + 1} of {totalCycles}
+            </h3>
+            
+            {/* Volcanic Meter */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-gray-700">🌋 Volcano Heat</span>
+                <span className="text-sm font-bold text-orange-600">{volcanicMeter}%</span>
+              </div>
+              <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
+                <motion.div 
+                  className="h-full bg-linear-to-r from-orange-500 to-red-600"
+                  initial={{ width: `${volcanicMeter}%` }}
+                  animate={{ width: `${volcanicMeter}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+            </div>
+
+            {/* Breathing Circle */}
+            <div className="flex justify-center items-center mb-6" style={{ height: '250px' }}>
+              <motion.div
+                className="rounded-full flex items-center justify-center"
+                style={{
+                  width: '150px',
+                  height: '150px',
+                  backgroundColor: getPhaseColor(),
+                  opacity: 0.8,
+                }}
+                animate={{
+                  scale: getCircleScale(),
+                }}
+                transition={{
+                  duration: 1,
+                  ease: "easeInOut"
+                }}
+              >
+                <div className="text-center">
+                  <div className="text-6xl font-bold text-white">
+                    {phase === 'inhale' ? 4 - count : phase === 'hold' ? 4 - count : 6 - count}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Phase Text */}
+            <motion.p 
+              className="text-2xl font-bold mb-4"
+              style={{ color: getPhaseColor() }}
+              key={phase}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {getPhaseText()}
+            </motion.p>
+          </div>
+        )}
+
+        {phase === 'complete' && (
+          <div className="text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200 }}
+            >
+              <h2 className="text-3xl font-bold text-green-600 mb-4">🎉 Amazing Work!</h2>
+            </motion.div>
+            <div className="bg-white rounded-xl p-6 mb-6">
+              <p className="text-gray-800 mb-4 text-lg">
+                You helped BLAZE cool down! The volcano is calm now. 🌋✨
+              </p>
+              <div className="mb-4">
+                <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
+                  <div className="h-full bg-linear-to-r from-green-400 to-green-600 w-0 animate-[fillBar_1s_ease-in-out_forwards]" />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 italic">
+                "Deep breathing cools down our angry fire inside"
+              </p>
+            </div>
+            <motion.button
+              onClick={handleComplete}
+              className="w-full bg-linear-to-br from-green-500 to-green-600 text-white font-bold py-4 px-6 rounded-xl text-xl"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Complete Exercise ✓
+            </motion.button>
+          </div>
+        )}
+      </motion.div>
+      
+      <style jsx>{`
+        @keyframes fillBar {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
+    </motion.div>
+  );
+}
+
+function MonkeyChatModal({ onClose }) {
+  return (
+    <motion.div 
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="bg-white rounded-2xl p-6 max-w-md w-[90%] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.8, opacity: 0, y: 50 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: 50 }}
+        transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
+      >
+        <div className="flex items-start gap-4 mb-4">
+          <motion.div 
+            className="w-20 h-20 bg-contain bg-no-repeat bg-center shrink-0"
+            style={{ backgroundImage: 'url(/spritesheets/monkey.png)' }}
+            initial={{ rotate: -20, scale: 0.8 }}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+          />
+          <div className="flex-1">
+            <motion.h3 
+              className="text-xl font-bold text-gray-800 mb-2"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              Monkey says:
+            </motion.h3>
+            <motion.p 
+              className="text-gray-700"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              Hey, I'll be able to take you to the spring dark forest soon, but I'm just out of gas right now.
+            </motion.p>
+          </div>
+        </div>
+        
+        <motion.button
+          onClick={onClose}
+          className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          Okay
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function GnomeChatModal({ onClose, onTravel, isReturn = false }) {
+  return (
+    <motion.div 
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="bg-white rounded-2xl p-6 max-w-md w-[90%] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.8, opacity: 0, y: 50 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: 50 }}
+        transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
+      >
+        <div className="flex items-start gap-4 mb-4">
+          <motion.div 
+            className="w-20 h-20 bg-contain bg-no-repeat bg-center shrink-0 rounded-full"
+            style={{ backgroundImage: 'url(/spritesheets/gnome-avatar.png)' }}
+            initial={{ rotate: -20, scale: 0.8 }}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+          />
+          <div className="flex-1">
+            <motion.h3 
+              className="text-xl font-bold text-gray-800 mb-2"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              Maximillion says:
+            </motion.h3>
+            <motion.p 
+              className="text-gray-700"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              {isReturn 
+                ? "Ready to head back to the Island of Feelings? I can take you there anytime!" 
+                : "I heard there's a dragon in the far lands who has lost his rock collection! I can take you there to help him out!"}
+            </motion.p>
+          </div>
+        </div>
+        
+        <motion.div 
+          className="flex gap-3"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <motion.button
+            onClick={onTravel}
+            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isReturn ? "Take me back" : "Take me there"}
+          </motion.button>
+          <motion.button
+            onClick={onClose}
+            className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Not now
+          </motion.button>
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function DragonChatModal({ onClose }) {
+  const { gameState, updateMission, setActiveMission } = useGameState();
+  const isCalm = gameState.missions.blazeBreathingExercise.completed;
+  const rockMission = gameState.missions.blazeRockCollection || {
+    discovered: false,
+    accepted: false,
+    completed: false,
+    rocksFound: 0,
+    totalRocks: 4,
+  };
+  
+  // Determine which message to show
+  const getMessage = () => {
+    if (!isCalm) {
+      return "Someone knocked over my rock collection that took me WEEKS to build! Im so MAD I could EXPLODE! Everything feels HOT and I want to ROAR!";
+    }
+    
+    if (!rockMission.discovered) {
+      return "Thank you so much for helping me calm down! 😊 That breathing exercise really helped. I feel so much better now! You're a great friend!";
+    }
+    
+    if (!rockMission.accepted) {
+      return "Now that I'm calm, I can think clearly! 🤔 My precious rock collection is scattered all over the lava caves. I had 4 special rocks... Can you help me find them? They mean everything to me!";
+    }
+    
+    if (rockMission.rocksFound < rockMission.totalRocks) {
+      return `You're doing great! You've found ${rockMission.rocksFound} out of ${rockMission.totalRocks} rocks. Keep looking around the caves! 🔍`;
+    }
+    
+    return "You found ALL my rocks! 🎉 Thank you so much! You're the best friend a dragon could ask for!";
+  };
+
+  const getButtonText = () => {
+    if (!isCalm) return "I'll help you find them!";
+    if (!rockMission.discovered) return "You're welcome, BLAZE! 🐉";
+    if (!rockMission.accepted) return "I'll help you find your rocks!";
+    if (rockMission.rocksFound < rockMission.totalRocks) return "I'll keep looking!";
+    return "Happy to help! 🐉";
+  };
+
+  const handleButtonClick = () => {
+    if (isCalm && rockMission.discovered && !rockMission.accepted) {
+      // Accept the mission
+      updateMission('blazeRockCollection', { accepted: true });
+      setActiveMission(`Locate BLAZE's rocks (${rockMission.rocksFound}/${rockMission.totalRocks})`);
+      
+      // Spawn rocks in the world
+      setTimeout(() => {
+        if (window.spawnRocks) {
+          window.spawnRocks();
+        }
+      }, 500); // Small delay to let modal close
+    }
+    onClose();
+  };
+
   return (
     <motion.div 
       className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
@@ -1469,106 +2905,40 @@ function TuliChatModal({ onClose }) {
       >
         <div className="flex items-start gap-4 mb-4">
           <motion.div 
-            className="w-16 h-16 bg-contain bg-no-repeat bg-center shrink-0"
-            style={{ backgroundImage: 'url(/spritesheets/tuli/avatar.png)' }}
+            className="w-24 h-24 bg-contain bg-no-repeat bg-center shrink-0"
+            style={{ backgroundImage: 'url(/spritesheets/dragon-idle.png)' }}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
           />
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-[#3B7C7D] mb-2">Chat with Tuli</h3>
+            <h3 className={`text-xl font-bold mb-2 ${
+              isCalm ? (rockMission.completed ? 'text-green-600' : 'text-[#3B7C7D]') : 'text-orange-700'
+            }`}>
+              BLAZE says:
+            </h3>
             <p className="text-gray-700">
-              Chat interface coming soon! This is where you'll be able to have conversations with Tuli.
+              {getMessage()}
             </p>
           </div>
         </div>
         
         <motion.button
-          onClick={onClose}
-          className="w-full bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white font-bold py-3 px-6 rounded-lg transition-colors hover:opacity-90 cursor-pointer"
+          onClick={handleButtonClick}
+          className={`w-full font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer text-white ${
+            isCalm 
+              ? (rockMission.discovered && !rockMission.accepted 
+                  ? 'bg-orange-600 hover:bg-orange-700' 
+                  : 'bg-green-600 hover:bg-green-700')
+              : 'bg-red-600 hover:bg-red-700'
+          }`}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          Close
+          {getButtonText()}
         </motion.button>
       </motion.div>
     </motion.div>
-  );
-}
-
-function GnomeChatModal({ onClose, onTravel }) {
-  return (
-    <div 
-      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
-      onClick={onClose}
-    >
-      <div 
-        className="bg-white rounded-2xl p-6 max-w-md w-[90%] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start gap-4 mb-4">
-          <div 
-            className="w-20 h-20 bg-contain bg-no-repeat bg-center shrink-0 rounded-full"
-            style={{ backgroundImage: 'url(/spritesheets/gnome-avatar.png)' }}
-          />
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Maximillion says:</h3>
-            <p className="text-gray-700">
-              I heard there's a dragon in the far lands who has lost his rock collection! I can take you there to help him out!
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex gap-3">
-          <button
-            onClick={onTravel}
-            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
-          >
-            Take me there
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
-          >
-            Not now
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DragonChatModal({ onClose }) {
-  return (
-    <div 
-      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
-      onClick={onClose}
-    >
-      <div 
-        className="bg-white rounded-2xl p-6 max-w-md w-[90%] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start gap-4 mb-4">
-          <div 
-            className="w-24 h-24 bg-contain bg-no-repeat bg-center shrink-0"
-            style={{ backgroundImage: 'url(/spritesheets/dragon-idle.png)' }}
-          />
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-orange-700 mb-2">Vesuvvy says:</h3>
-            <p className="text-gray-700">
-              Rawr! I lost my rock collection and i cant stand it!
-            </p>
-          </div>
-        </div>
-        
-        <button
-          onClick={onClose}
-          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors cursor-pointer"
-        >
-          I'll help you find them!
-        </button>
-      </div>
-    </div>
   );
 }
 

@@ -1,15 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useUser } from '../contexts/UserContext';
+import { useGameState } from '../contexts/GameStateContext';
 import { SUPPORTED_LANGUAGES } from '../lib/localization';
 
 export default function WelcomeModal() {
   const { updateUserName, updateLanguage, completeWelcome, language, translations } = useUser();
+  const { resetGameState } = useGameState();
   const [firstName, setFirstName] = useState('ilia');
   const [lastName, setLastName] = useState('demertchian');
   const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const [hasSavedGame, setHasSavedGame] = useState(false);
+
+  // Check for saved game state on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('tuliGameState');
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        // Check if there's any meaningful progress (dragon seen or mission discovered/completed)
+        const hasProgress = parsed.seenDragon || 
+                           parsed.missions?.blazeBreathingExercise?.discovered || 
+                           parsed.missions?.blazeBreathingExercise?.completed;
+        setHasSavedGame(hasProgress);
+      } catch (e) {
+        setHasSavedGame(false);
+      }
+    }
+  }, []);
 
   const handleLanguageChange = (langCode) => {
     setSelectedLanguage(langCode);
@@ -19,6 +39,15 @@ export default function WelcomeModal() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (firstName.trim() && lastName.trim()) {
+      updateUserName(firstName.trim(), lastName.trim());
+      completeWelcome();
+    }
+  };
+
+  const handleStartNew = (e) => {
+    e.preventDefault();
+    if (firstName.trim() && lastName.trim()) {
+      resetGameState(); // Clear saved game state
       updateUserName(firstName.trim(), lastName.trim());
       completeWelcome();
     }
@@ -101,12 +130,30 @@ export default function WelcomeModal() {
               </select>
             </div>
 
-            <button 
-              type="submit" 
-              className="mt-3 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
-            >
-              {t.startButton}
-            </button>
+            {hasSavedGame ? (
+              <div className="flex gap-3 mt-3">
+                <button 
+                  type="submit" 
+                  className="flex-1 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
+                >
+                  Continue
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleStartNew}
+                  className="flex-1 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#f59e0b] to-[#d97706] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
+                >
+                  Start New
+                </button>
+              </div>
+            ) : (
+              <button 
+                type="submit" 
+                className="mt-3 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
+              >
+                {t.startButton}
+              </button>
+            )}
           </form>
         </div>
       </motion.div>

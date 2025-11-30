@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "../contexts/UserContext";
+import { GameStateProvider } from "../contexts/GameStateContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,7 +25,9 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <UserProvider>
-          {children}
+          <GameStateProvider>
+            {children}
+          </GameStateProvider>
         </UserProvider>
       </body>
     </html>

@@ -91,6 +91,13 @@ export default function WorldEditor({ onBackToGame }) {
           spacing: 0,
           margin: 0,
         });
+        
+        this.load.spritesheet('plane', '/spritesheets/plane.png', {
+          frameWidth: 16,
+          frameHeight: 16,
+          spacing: 0,
+          margin: 0,
+        });
       }
 
       create() {
@@ -1540,6 +1547,7 @@ export default function WorldEditor({ onBackToGame }) {
               {layers[currentLayer]?.spriteSheet === 'tileset' ? 'Tileset' :
                layers[currentLayer]?.spriteSheet === 'train' ? 'Train' :
                layers[currentLayer]?.spriteSheet === 'firecave' ? 'Firecave' :
+               layers[currentLayer]?.spriteSheet === 'plane' ? 'Plane' :
                'Objects'}
             </span>
             <button
@@ -1566,6 +1574,7 @@ export default function WorldEditor({ onBackToGame }) {
                   layers[currentLayer].spriteSheet === 'tileset' ? 'Tileset_16x16.png' :
                   layers[currentLayer].spriteSheet === 'train' ? 'train.png' :
                   layers[currentLayer].spriteSheet === 'firecave' ? 'Firecave_A1.png' :
+                  layers[currentLayer].spriteSheet === 'plane' ? 'plane.png' :
                   'Objects.png'
                 }
                 selectedTile={selectedPaletteTile}
@@ -1687,6 +1696,7 @@ export default function WorldEditor({ onBackToGame }) {
             layers[currentLayer].spriteSheet === 'tileset' ? 'Tileset_16x16.png' :
             layers[currentLayer].spriteSheet === 'train' ? 'train.png' :
             layers[currentLayer].spriteSheet === 'firecave' ? 'Firecave_A1.png' :
+            layers[currentLayer].spriteSheet === 'plane' ? 'plane.png' :
             'Objects.png'
           }
           onSelect={handleTileSelect}
@@ -1819,6 +1829,7 @@ function LayerManagerModal({ layers, currentLayer, onClose, onAddLayer, onRename
                   <option value="objects">Objects</option>
                   <option value="train">Train</option>
                   <option value="firecave">Firecave</option>
+                  <option value="plane">Plane</option>
                 </select>
                 
                 {layers.length > 1 && (
