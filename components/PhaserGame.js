@@ -1248,9 +1248,13 @@ export default function PhaserGame() {
       }
 
       findPath(startX, startY, endX, endY) {
-        // A* pathfinding algorithm
+        // A* pathfinding algorithm with mobile optimization
         const startGrid = this.worldToGrid(startX, startY);
         const endGrid = this.worldToGrid(endX, endY);
+        
+        // Limit pathfinding iterations for mobile performance
+        const maxIterations = 1000;
+        let iterations = 0;
         
         // If end position not walkable, return null
         if (!this.isGridWalkable(endGrid.gridX, endGrid.gridY)) {
@@ -1270,7 +1274,9 @@ export default function PhaserGame() {
         gScore.set(startKey, 0);
         fScore.set(startKey, this.heuristic(startGrid, endGrid));
         
-        while (openSet.length > 0) {
+        while (openSet.length > 0 && iterations < maxIterations) {
+          iterations++;
+          
           // Get node with lowest fScore
           let current = openSet[0];
           let currentFScore = fScore.get(current) || Infinity;
@@ -1520,11 +1526,17 @@ export default function PhaserGame() {
       }
 
       update() {
-        this.frameCount++;
-        
-        // Update Tuli glow position to follow follower
-        if (this.tuliGlow && this.followerSprite) {
-          this.tuliGlow.setPosition(this.followerSprite.x, this.followerSprite.y);
+        // Wrap in try-catch for iOS stability
+        try {
+          this.frameCount++;
+          
+          // Update Tuli glow position to follow follower
+          if (this.tuliGlow && this.followerSprite) {
+            this.tuliGlow.setPosition(this.followerSprite.x, this.followerSprite.y);
+          }
+        } catch (error) {
+          console.error('Update error:', error);
+          return; // Skip this frame on error
         }
         
         // Check if dragon is in viewport (lava world only) - only check once per second
@@ -1778,6 +1790,19 @@ export default function PhaserGame() {
           gravity: { y: 0 },
           debug: false,
         },
+      },
+      // iOS Safari optimizations
+      render: {
+        pixelArt: true,
+        antialias: false,
+        powerPreference: 'low-power',
+      },
+      audio: {
+        noAudio: true, // Disable audio to prevent iOS issues
+      },
+      fps: {
+        target: 30,
+        forceSetTimeOut: true,
       },
     };
 
