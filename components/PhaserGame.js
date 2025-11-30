@@ -2034,7 +2034,7 @@ function TuliWelcomeModal({ onClose, translations }) {
       transition={{ duration: 0.3 }}
     >
       <motion.div 
-        className="bg-white rounded-2xl p-6 max-w-lg w-[90%] shadow-2xl"
+        className="bg-white rounded-2xl p-4 sm:p-6 max-w-lg w-[90%] max-h-[85vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         initial={{ scale: 0.8, opacity: 0, y: 50 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -2044,9 +2044,9 @@ function TuliWelcomeModal({ onClose, translations }) {
           ease: [0.34, 1.56, 0.64, 1] // Bouncy ease
         }}
       >
-        <div className="flex items-start gap-4 mb-4">
+        <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
           <motion.div 
-            className="w-20 h-20 bg-contain bg-no-repeat bg-center shrink-0"
+            className="w-16 h-16 sm:w-20 sm:h-20 bg-contain bg-no-repeat bg-center shrink-0"
             style={{ backgroundImage: 'url(/spritesheets/tuli/avatar.png)' }}
             initial={{ rotate: -10 }}
             animate={{ rotate: 0 }}
@@ -2058,7 +2058,7 @@ function TuliWelcomeModal({ onClose, translations }) {
           />
           <div className="flex-1">
             <motion.h3 
-              className="text-2xl font-bold text-[#3B7C7D] mb-3"
+              className="text-xl sm:text-2xl font-bold text-[#3B7C7D] mb-2 sm:mb-3"
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.4 }}
@@ -2066,18 +2066,18 @@ function TuliWelcomeModal({ onClose, translations }) {
               {t.welcomeTitle || "Welcome to the Island of Feelings!"}
             </motion.h3>
             <motion.div
-              className="text-gray-700 space-y-2"
+              className="text-gray-700 space-y-1.5 sm:space-y-2"
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.4 }}
             >
-              <p className="font-semibold text-gray-800">
+              <p className="font-semibold text-gray-800 text-sm sm:text-base">
                 {t.welcomeHello || "Hello! I'm Tuli, your virtual friend. 🌟"}
               </p>
-              <p>
+              <p className="text-sm sm:text-base">
                 {t.welcomeAdventure || "I'll be with you on this adventure and many more to come!"}
               </p>
-              <div className="mt-3 space-y-1.5 text-sm">
+              <div className="mt-2 sm:mt-3 space-y-1 sm:space-y-1.5 text-xs sm:text-sm">
                 <p><span className="font-semibold">🖱️ {t.welcomeNavigate || "Navigate:"}</span> {t.welcomeNavigateDesc || "Click anywhere to move around the island"}</p>
                 <p><span className="font-semibold">💬 {t.welcomeTalk || "Talk to me:"}</span> {t.welcomeTalkDesc || "Click on me anytime to chat or ask questions"}</p>
                 <p><span className="font-semibold">👥 {t.welcomeMeet || "Meet others:"}</span> {t.welcomeMeetDesc || "Look for glowing characters to interact with them"}</p>
@@ -2601,7 +2601,7 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
       transition={{ duration: 0.3 }}
     >
       <motion.div 
-        className="bg-linear-to-br from-orange-50 to-red-50 rounded-2xl p-8 max-w-lg w-[90%] shadow-2xl"
+        className="bg-linear-to-br from-orange-50 to-red-50 rounded-2xl p-4 sm:p-8 max-w-lg w-[90%] max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -2610,21 +2610,21 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
       >
         {phase === 'intro' && (
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-orange-700 mb-4">{t.title || "🌋 The Dragon's Breath"}</h2>
-            <div className="bg-white rounded-xl p-6 mb-6">
-              <p className="text-gray-800 mb-4 text-lg" dangerouslySetInnerHTML={{ __html: t.intro || `Let's help BLAZE cool down with the <strong>Dragon's Breath</strong> technique!` }} />
-              <div className="text-left space-y-2 text-gray-700">
+            <h2 className="text-2xl sm:text-3xl font-bold text-orange-700 mb-3 sm:mb-4">{t.title || "🌋 The Dragon's Breath"}</h2>
+            <div className="bg-white rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+              <p className="text-gray-800 mb-3 sm:mb-4 text-base sm:text-lg" dangerouslySetInnerHTML={{ __html: t.intro || `Let's help BLAZE cool down with the <strong>Dragon's Breath</strong> technique!` }} />
+              <div className="text-left space-y-1.5 sm:space-y-2 text-gray-700 text-sm sm:text-base">
                 <p dangerouslySetInnerHTML={{ __html: t.stepInhale || "🌬️ <strong>Breathe IN</strong> cool air (4 counts)" }} />
                 <p dangerouslySetInnerHTML={{ __html: t.stepHold || "⏸️ <strong>Hold</strong> your breath (4 counts)" }} />
                 <p dangerouslySetInnerHTML={{ __html: t.stepExhale || "🔥 <strong>Breathe OUT</strong> hot air slowly (6 counts)" }} />
               </div>
             </div>
-            <p className="text-sm text-gray-600 italic mb-6">
+            <p className="text-xs sm:text-sm text-gray-600 italic mb-4 sm:mb-6">
               {t.quote || `"Deep breathing cools down our angry fire inside"`}
             </p>
             <motion.button
               onClick={startExercise}
-              className="w-full bg-linear-to-br from-orange-500 to-red-500 text-white font-bold py-4 px-6 rounded-xl text-xl"
+              className="w-full bg-linear-to-br from-orange-500 to-red-500 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-lg sm:text-xl"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -2635,7 +2635,7 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
 
         {phase !== 'intro' && phase !== 'complete' && (
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-orange-700 mb-2">
+            <h3 className="text-xl sm:text-2xl font-bold text-orange-700 mb-2">
               {(t.breathCount || "Breath {current} of {total}").replace('{current}', breathCycle + 1).replace('{total}', totalCycles)}
             </h3>
             
@@ -2656,12 +2656,10 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
             </div>
 
             {/* Breathing Circle */}
-            <div className="flex justify-center items-center mb-6" style={{ height: '250px' }}>
+            <div className="flex justify-center items-center mb-4 sm:mb-6 h-[180px] sm:h-[250px]">
               <motion.div
-                className="rounded-full flex items-center justify-center"
+                className="rounded-full flex items-center justify-center w-[120px] h-[120px] sm:w-[150px] sm:h-[150px]"
                 style={{
-                  width: '150px',
-                  height: '150px',
                   backgroundColor: getPhaseColor(),
                   opacity: 0.8,
                 }}
@@ -2674,7 +2672,7 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-6xl font-bold text-white">
+                  <div className="text-5xl sm:text-6xl font-bold text-white">
                     {phase === 'inhale' ? 4 - count : phase === 'hold' ? 4 - count : 6 - count}
                   </div>
                 </div>
@@ -2683,7 +2681,7 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
 
             {/* Phase Text */}
             <motion.p 
-              className="text-2xl font-bold mb-4"
+              className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4"
               style={{ color: getPhaseColor() }}
               key={phase}
               initial={{ opacity: 0, y: 10 }}
@@ -2701,10 +2699,10 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
             >
-              <h2 className="text-3xl font-bold text-green-600 mb-4">{t.completeTitle || "🎉 Amazing Work!"}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-green-600 mb-3 sm:mb-4">{t.completeTitle || "🎉 Amazing Work!"}</h2>
             </motion.div>
-            <div className="bg-white rounded-xl p-6 mb-6">
-              <p className="text-gray-800 mb-4 text-lg">
+            <div className="bg-white rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+              <p className="text-gray-800 mb-3 sm:mb-4 text-base sm:text-lg">
                 {t.completeMessage || "You helped BLAZE cool down! The volcano is calm now. 🌋✨"}
               </p>
               <div className="mb-4">
@@ -2718,7 +2716,7 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
             </div>
             <motion.button
               onClick={handleComplete}
-              className="w-full bg-linear-to-br from-green-500 to-green-600 text-white font-bold py-4 px-6 rounded-xl text-xl"
+              className="w-full bg-linear-to-br from-green-500 to-green-600 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-lg sm:text-xl"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >

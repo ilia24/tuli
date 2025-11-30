@@ -36,8 +36,7 @@
       "welcomeMeetDesc": "Look for glowing characters to interact with them",
       "welcomeButton": "Let's explore!",
       "chatLavaWorld": "Hi there! 🔥 Its HOT in here! Have you met BLAZE yet? He seems pretty upset about his rocks. How are YOU feeling?",
-      "chatTutorial": "Hi friend! 🌊 Welcome to the Island of Feelings! The breeze feels nice here, doesn't it? How are you doing today?",
-      "name": "Tuli says:"
+      "chatTutorial": "Hi friend! 🌊 Welcome to the Island of Feelings! The breeze feels nice here, doesn't it? How are you doing today?"
     },
     "gnome": {
       "name": "Maximillion says:",
@@ -97,7 +96,6 @@
   "chat": {
     "placeholder": "Type your message...",
     "send": "Send"
-  }
   }
 }
 

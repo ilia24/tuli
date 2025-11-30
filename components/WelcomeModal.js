@@ -65,20 +65,20 @@ export default function WelcomeModal() {
       transition={{ duration: 0.3 }}
     >
       <motion.div 
-        className="bg-linear-to-br from-[#4a9a9b] to-[#3B7C7D] rounded-3xl p-12 shadow-2xl max-w-lg w-[90%]"
+        className="bg-linear-to-br from-[#4a9a9b] to-[#3B7C7D] rounded-3xl p-6 sm:p-12 shadow-2xl max-w-lg w-[90%] max-h-[90vh] overflow-y-auto"
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -50 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
         <div className="text-white">
-          <h1 className="text-5xl font-extrabold mb-8 text-center drop-shadow-lg">
+          <h1 className="text-3xl sm:text-5xl font-extrabold mb-4 sm:mb-8 text-center drop-shadow-lg">
             {t.title}
           </h1>
           
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <div className="flex flex-col gap-3">
-              <label htmlFor="firstName" className="text-lg font-semibold drop-shadow-sm">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:gap-6">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="firstName" className="text-base sm:text-lg font-semibold drop-shadow-sm">
                 {t.firstNameLabel}
               </label>
               <input
@@ -87,7 +87,7 @@ export default function WelcomeModal() {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder={t.firstNamePlaceholder}
-                className="px-5 py-3.5 text-lg border-none rounded-xl bg-white text-gray-800 shadow-md transition-all duration-300 focus:outline-none focus:shadow-lg focus:-translate-y-0.5 placeholder:text-gray-400"
+                className="px-4 sm:px-5 py-2.5 sm:py-3.5 text-base sm:text-lg border-none rounded-xl bg-white text-gray-800 shadow-md transition-all duration-300 focus:outline-none focus:shadow-lg focus:-translate-y-0.5 placeholder:text-gray-400"
                 autoFocus
                 required
                 minLength={1}
@@ -95,8 +95,8 @@ export default function WelcomeModal() {
               />
             </div>
 
-            <div className="flex flex-col gap-3">
-              <label htmlFor="lastName" className="text-lg font-semibold drop-shadow-sm">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="lastName" className="text-base sm:text-lg font-semibold drop-shadow-sm">
                 {t.lastNameLabel}
               </label>
               <input
@@ -105,22 +105,22 @@ export default function WelcomeModal() {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder={t.lastNamePlaceholder}
-                className="px-5 py-3.5 text-lg border-none rounded-xl bg-white text-gray-800 shadow-md transition-all duration-300 focus:outline-none focus:shadow-lg focus:-translate-y-0.5 placeholder:text-gray-400"
+                className="px-4 sm:px-5 py-2.5 sm:py-3.5 text-base sm:text-lg border-none rounded-xl bg-white text-gray-800 shadow-md transition-all duration-300 focus:outline-none focus:shadow-lg focus:-translate-y-0.5 placeholder:text-gray-400"
                 required
                 minLength={1}
                 maxLength={20}
               />
             </div>
 
-            <div className="flex flex-col gap-3">
-              <label htmlFor="language" className="text-lg font-semibold drop-shadow-sm">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="language" className="text-base sm:text-lg font-semibold drop-shadow-sm">
                 {t.languageLabel}
               </label>
               <select
                 id="language"
                 value={selectedLanguage}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                className="px-5 py-3.5 text-lg border-none rounded-xl bg-white text-gray-800 shadow-md transition-all duration-300 focus:outline-none focus:shadow-lg focus:-translate-y-0.5 cursor-pointer"
+                className="px-4 sm:px-5 py-2.5 sm:py-3.5 text-base sm:text-lg border-none rounded-xl bg-white text-gray-800 shadow-md transition-all duration-300 focus:outline-none focus:shadow-lg focus:-translate-y-0.5 cursor-pointer"
               >
                 {SUPPORTED_LANGUAGES.map((lang) => (
                   <option key={lang.code} value={lang.code}>
@@ -131,17 +131,17 @@ export default function WelcomeModal() {
             </div>
 
             {hasSavedGame ? (
-              <div className="flex gap-3 mt-3">
+              <div className="flex gap-2 sm:gap-3 mt-2 sm:mt-3">
                 <button 
                   type="submit" 
-                  className="flex-1 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
+                  className="flex-1 px-4 sm:px-8 py-3 sm:py-4 text-base sm:text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
                 >
                   Continue
                 </button>
                 <button 
                   type="button"
                   onClick={handleStartNew}
-                  className="flex-1 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#f59e0b] to-[#d97706] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
+                  className="flex-1 px-4 sm:px-8 py-3 sm:py-4 text-base sm:text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#f59e0b] to-[#d97706] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
                 >
                   Start New
                 </button>
@@ -149,7 +149,7 @@ export default function WelcomeModal() {
             ) : (
               <button 
                 type="submit" 
-                className="mt-3 px-8 py-4 text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
+                className="mt-2 sm:mt-3 px-4 sm:px-8 py-3 sm:py-4 text-base sm:text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
               >
                 {t.startButton}
               </button>
