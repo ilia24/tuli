@@ -17,6 +17,81 @@
   "common": {
     "loading": "Se încarcă...",
     "error": "Hopa! Ceva nu a mers bine"
+  },
+  "npcs": {
+    "tuli": {
+      "greeting": "Salut! Sunt Tuli, ghidul tău prietenos! Dă click în jur pentru a explora și a învăța lucruri noi!",
+      "close": "Mulțumesc, Tuli!",
+      "welcomeTitle": "Bine ai venit pe Insula Sentimentelor!",
+      "welcomeHello": "Salut! Sunt Tuli, prietenul tău virtual. 🌟",
+      "welcomeAdventure": "Voi fi cu tine în această aventură și în multe altele!",
+      "welcomeNavigate": "Navigare:",
+      "welcomeNavigateDesc": "Dă click oriunde pentru a te deplasa pe insulă",
+      "welcomeTalk": "Vorbește cu mine:",
+      "welcomeTalkDesc": "Dă click pe mine oricând pentru a discuta sau pune întrebări",
+      "welcomeMeet": "Întâlnește-i pe ceilalți:",
+      "welcomeMeetDesc": "Caută personaje strălucitoare pentru a interacționa cu ele",
+      "welcomeButton": "Să explorăm!",
+      "chatLavaWorld": "Salut! 🔥 E FIERBINTE aici! L-ai întâlnit pe BLAZE? Pare destul de supărat pentru pietrele lui. Cum te simți TU?",
+      "chatTutorial": "Salut prietene! 🌊 Bine ai venit pe Insula Sentimentelor! Briza se simte plăcut aici, nu-i așa? Cum te simți astăzi?",
+      "name": "Tuli spune:"
+    },
+    "gnome": {
+      "name": "Maximillion spune:",
+      "greeting": "Am auzit că este un dragon în ținuturile îndepărtate care și-a pierdut colecția de pietre! Te pot duce acolo să-l ajuți!",
+      "returnGreeting": "Gata să te întorci la Insula Sentimentelor? Te pot duce oricând!",
+      "travel": "Du-mă acolo",
+      "notNow": "Nu acum"
+    },
+    "monkey": {
+      "name": "Maimuța spune:",
+      "greeting": "Hei, o să te pot duce la pădurea întunecată de primăvară în curând, dar acum sunt fără benzină.",
+      "close": "Bine"
+    },
+    "dragon": {
+      "name": "Vesuvvy spune:",
+      "sad": "Rawr! Mi-am pierdut colecția de pietre și nu pot suporta!",
+      "happy": "Mulțumesc mult! Ai găsit toate pietrele mele prețioase! Sunt atât de fericit!",
+      "rocksProgress": "găsite",
+      "helpButton": "Te voi ajuta să le găsești!",
+      "thankYouButton": "Cu plăcere, Vesuvvy!"
+    }
+  },
+  "blaze": {
+    "name": "BLAZE spune:",
+    "missionInitial": "Hei! 😮 L-ai văzut pe BLAZE? Arată foarte supărat! Ce crezi că am putea face pentru a-l ajuta să se calmeze?",
+    "angry": "Cineva mi-a doborât colecția de pietre care mi-a luat SĂPTĂMÂNI să o construiesc! Sunt atât de SUPĂRAT încât aș putea EXPLODA! Totul se simte FIERBINTE și vreau să RĂC!",
+    "grateful": "Mulțumesc mult pentru că m-ai ajutat să mă calm! 😊 Exercițiul de respirație a ajutat cu adevărat. Mă simt mult mai bine acum! Ești un prieten minunat!",
+    "askForHelp": "Acum că sunt calm, pot gândi clar! 🤔 Colecția mea prețioasă de pietre este împrăștiată peste tot în peșterile de lavă. Aveam 4 pietre speciale... Mă poți ajuta să le găsesc? Înseamnă totul pentru mine!",
+    "searching": "Te descurci grozav! Ai găsit {count} din {total} pietre. Continuă să cauți prin peșteri! 🔍",
+    "complete": "Ai găsit TOATE pietrele mele! 🎉 Mulțumesc mult! Ești cel mai bun prieten pe care l-ar putea avea un dragon!",
+    "helpButton": "Ajută-l pe BLAZE",
+    "thankYouButton": "Cu plăcere, BLAZE! 🐉",
+    "acceptButton": "Te voi ajuta să-ți găsești pietrele!",
+    "searchButton": "Voi continua să caut!"
+  },
+  "breathing": {
+    "startButton": "🌬️ Începe Exercițiul de Respirație cu BLAZE",
+    "title": "🌋 Respirația Dragonului",
+    "intro": "Să-l ajutăm pe BLAZE să se răcorească cu tehnica <strong>Respirația Dragonului</strong>!",
+    "stepInhale": "🌬️ <strong>Inspiră</strong> aer rece (4 numărători)",
+    "stepHold": "⏸️ <strong>Ține</strong> respirația (4 numărători)",
+    "stepExhale": "🔥 <strong>Expiră</strong> aer fierbinte încet (6 numărători)",
+    "quote": "\"Respirația profundă răcește focul nostru interior\"",
+    "startExercise": "Începe Exercițiul de Respirație",
+    "breathCount": "Respirația {current} din {total}",
+    "volcanoHeat": "🌋 Căldura Vulcanului",
+    "inhale": "Inspiră 🌬️",
+    "hold": "Ține ⏸️",
+    "exhale": "Expiră 🔥",
+    "completeTitle": "🎉 Excelent!",
+    "completeMessage": "L-ai ajutat pe BLAZE să se calmeze! Vulcanul este calm acum. 🌋✨",
+    "completeButton": "Completează Exercițiul ✓"
+  },
+  "chat": {
+    "placeholder": "Scrie mesajul tău...",
+    "send": "Trimite"
+  }
   }
 }
 

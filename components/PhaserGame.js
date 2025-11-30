@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getWorld, isTileWalkable, isTileAbovePlayer } from '../lib/worldConfig';
 import { useGameState } from '../contexts/GameStateContext';
+import { useUser } from '../contexts/UserContext';
 import { DEV_CONFIG } from '../lib/config';
 
 const ZOOM_FACTOR = 2;
@@ -22,6 +23,7 @@ export default function PhaserGame() {
   const gameRef = useRef(null);
   const phaserGameRef = useRef(null);
   const { gameState, updateGameState, updateMission, completeMission, setActiveMission } = useGameState();
+  const { language, translations } = useUser();
   const gameStateRef = useRef(gameState); // Ref to always have current game state
   const [showTuliWelcome, setShowTuliWelcome] = useState(false);
   const [showTuliChat, setShowTuliChat] = useState(false);
@@ -297,11 +299,15 @@ export default function PhaserGame() {
 
         // Enable click/tap to move
         this.input.on('pointerdown', (pointer) => {
-          // Don't move if we just clicked on Tuli
+          // Don't move if we just clicked on Tuli/NPC
           if (this.clickedOnTuli) {
+            console.log('Blocked movement - clicked on NPC');
             this.clickedOnTuli = false; // Reset flag
             return;
           }
+          
+          const gridPos = this.worldToGrid(pointer.worldX, pointer.worldY);
+          console.log(`Clicked floor at grid (${gridPos.gridX}, ${gridPos.gridY})`);
           
           // Use worldX and worldY to account for camera movement
           this.movePlayerTo(pointer.worldX, pointer.worldY);
@@ -532,6 +538,7 @@ export default function PhaserGame() {
         // Click to open chat
         npc.on('pointerdown', (pointer) => {
           if (pointer.leftButtonDown()) {
+            console.log(`Clicked on NPC at (${gridX}, ${gridY}), opening ${chatFunction}`);
             this.clickedOnTuli = true; // Prevent movement
             
             if (window[chatFunction]) {
@@ -842,6 +849,16 @@ export default function PhaserGame() {
 
       loadWorld(worldKey) {
         // Clear current world
+        // Destroy all NPCs explicitly first
+        if (this.npcs && this.npcs.length > 0) {
+          this.npcs.forEach(npc => {
+            if (npc && npc.destroy) {
+              npc.destroy();
+            }
+          });
+        }
+        
+        // Remove all children
         this.children.removeAll();
         this.portals = [];
         this.npcs = [];
@@ -1905,22 +1922,33 @@ export default function PhaserGame() {
       {/* Tuli Welcome Modal */}
       <AnimatePresence>
         {showTuliWelcome && (
-          <TuliWelcomeModal onClose={() => setShowTuliWelcome(false)} />
+          <TuliWelcomeModal 
+            onClose={() => setShowTuliWelcome(false)}
+            translations={translations}
+          />
         )}
       </AnimatePresence>
       
       {/* Tuli Chat Modal */}
       <AnimatePresence>
       {showTuliChat && (
-        <TuliChatModal onClose={() => setShowTuliChat(false)} />
+        <TuliChatModal 
+          onClose={() => setShowTuliChat(false)} 
+          language={language}
+          translations={translations}
+        />
       )}
       </AnimatePresence>
       
       {/* Dragon Mission Chat Modal */}
       <AnimatePresence>
-        {showDragonMissionChat && (
-          <DragonMissionChatModal onClose={() => setShowDragonMissionChat(false)} />
-        )}
+      {showDragonMissionChat && (
+        <DragonMissionChatModal 
+          onClose={() => setShowDragonMissionChat(false)}
+          language={language}
+          translations={translations}
+        />
+      )}
       </AnimatePresence>
       
       {/* Breathing Exercise Modal */}
@@ -1928,6 +1956,7 @@ export default function PhaserGame() {
         {showBreathingExercise && (
           <BreathingExerciseModal 
             onClose={() => setShowBreathingExercise(false)}
+            translations={translations}
             onComplete={() => {
               console.log('onComplete callback triggered!');
               // Enable dragon glow and disable Tuli glow after breathing exercise
@@ -1951,6 +1980,7 @@ export default function PhaserGame() {
         <GnomeChatModal 
           onClose={() => setShowGnomeChat(false)}
           onTravel={handleTravelToLavaWorld}
+          translations={translations}
         />
       )}
       </AnimatePresence>
@@ -1958,10 +1988,11 @@ export default function PhaserGame() {
       {/* Maximillion Return Chat Modal */}
       <AnimatePresence>
         {showGnomeChatReturn && (
-          <GnomeChatModal 
+          <GnomeChatModal
             onClose={() => setShowGnomeChatReturn(false)}
             onTravel={handleTravelToTutorial}
             isReturn={true}
+            translations={translations}
           />
         )}
       </AnimatePresence>
@@ -1969,21 +2000,29 @@ export default function PhaserGame() {
       {/* Monkey Chat Modal */}
       <AnimatePresence>
       {showMonkeyChat && (
-        <MonkeyChatModal onClose={() => setShowMonkeyChat(false)} />
+        <MonkeyChatModal 
+          onClose={() => setShowMonkeyChat(false)}
+          translations={translations}
+        />
       )}
       </AnimatePresence>
       
       {/* BLAZE Chat Modal */}
       <AnimatePresence>
       {showDragonChat && (
-        <DragonChatModal onClose={() => setShowDragonChat(false)} />
+        <DragonChatModal 
+          onClose={() => setShowDragonChat(false)}
+          translations={translations}
+        />
       )}
       </AnimatePresence>
     </>
   );
 }
 
-function TuliWelcomeModal({ onClose }) {
+function TuliWelcomeModal({ onClose, translations }) {
+  const t = translations?.npcs?.tuli || {};
+  
   return (
     <motion.div 
       className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
@@ -2023,7 +2062,7 @@ function TuliWelcomeModal({ onClose }) {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.4 }}
             >
-              Welcome to the Island of Feelings!
+              {t.welcomeTitle || "Welcome to the Island of Feelings!"}
             </motion.h3>
             <motion.div
               className="text-gray-700 space-y-2"
@@ -2032,15 +2071,15 @@ function TuliWelcomeModal({ onClose }) {
               transition={{ delay: 0.4, duration: 0.4 }}
             >
               <p className="font-semibold text-gray-800">
-                Hello! I'm Tuli, your virtual friend. 🌟
+                {t.welcomeHello || "Hello! I'm Tuli, your virtual friend. 🌟"}
               </p>
               <p>
-                I'll be with you on this adventure and many more to come!
+                {t.welcomeAdventure || "I'll be with you on this adventure and many more to come!"}
               </p>
               <div className="mt-3 space-y-1.5 text-sm">
-                <p><span className="font-semibold">🖱️ Navigate:</span> Click anywhere to move around the island</p>
-                <p><span className="font-semibold">💬 Talk to me:</span> Click on me anytime to chat or ask questions</p>
-                <p><span className="font-semibold">👥 Meet others:</span> Look for glowing characters to interact with them</p>
+                <p><span className="font-semibold">🖱️ {t.welcomeNavigate || "Navigate:"}</span> {t.welcomeNavigateDesc || "Click anywhere to move around the island"}</p>
+                <p><span className="font-semibold">💬 {t.welcomeTalk || "Talk to me:"}</span> {t.welcomeTalkDesc || "Click on me anytime to chat or ask questions"}</p>
+                <p><span className="font-semibold">👥 {t.welcomeMeet || "Meet others:"}</span> {t.welcomeMeetDesc || "Look for glowing characters to interact with them"}</p>
               </div>
             </motion.div>
           </div>
@@ -2055,22 +2094,24 @@ function TuliWelcomeModal({ onClose }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          Let's explore!
+          {t.welcomeButton || "Let's explore!"}
         </motion.button>
       </motion.div>
     </motion.div>
   );
 }
 
-function TuliChatModal({ onClose }) {
+function TuliChatModal({ onClose, language, translations }) {
+  const t = translations?.npcs?.tuli || {};
+  
   // Get initial message based on current world
   const getInitialMessage = () => {
     const currentWorld = window.currentGameWorld || 'tutorial';
     
     if (currentWorld === 'lavaWorld') {
-      return "Hi there! 🔥 Its HOT in here! Have you met BLAZE yet? He seems pretty upset about his rocks. How are YOU feeling?";
+      return t.chatLavaWorld || "Hi there! 🔥 Its HOT in here! Have you met BLAZE yet? He seems pretty upset about his rocks. How are YOU feeling?";
     } else {
-      return "Hi friend! 🌊 Welcome to the Island of Feelings! The breeze feels nice here, doesn't it? How are you doing today?";
+      return t.chatTutorial || "Hi friend! 🌊 Welcome to the Island of Feelings! The breeze feels nice here, doesn't it? How are you doing today?";
     }
   };
 
@@ -2111,7 +2152,8 @@ function TuliChatModal({ onClose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages,
-          worldContext
+          worldContext,
+          language: language || 'en'
         }),
       });
 
@@ -2244,10 +2286,13 @@ function TuliChatModal({ onClose }) {
   );
 }
 
-function DragonMissionChatModal({ onClose }) {
+function DragonMissionChatModal({ onClose, language, translations }) {
   const { gameState, updateGameState } = useGameState();
+  const tb = translations?.blaze || {};
+  const tc = translations?.chat || {};
+  
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hey! 😮 Have you seen BLAZE? He looks really upset! What do you think we could do to help him calm down?' }
+    { role: 'assistant', content: tb.missionInitial || 'Hey! 😮 Have you seen BLAZE? He looks really upset! What do you think we could do to help him calm down?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -2288,7 +2333,8 @@ function DragonMissionChatModal({ onClose }) {
         body: JSON.stringify({
           messages: newMessages,
           worldContext,
-          missionContext
+          missionContext,
+          language: language || 'en'
         }),
       });
 
@@ -2418,7 +2464,7 @@ function DragonMissionChatModal({ onClose }) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            🌬️ Start Breathing Exercise with BLAZE
+            {translations?.breathing?.startButton || "🌬️ Start Breathing Exercise with BLAZE"}
           </motion.button>
         ) : (
           <div className="flex gap-2">
@@ -2427,7 +2473,7 @@ function DragonMissionChatModal({ onClose }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
+              placeholder={translations?.chat?.placeholder || "Type your message..."}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9CD3B2] focus:border-transparent text-gray-800 placeholder:text-gray-500"
               disabled={isLoading}
             />
@@ -2438,7 +2484,7 @@ function DragonMissionChatModal({ onClose }) {
               whileHover={{ scale: input.trim() && !isLoading ? 1.05 : 1 }}
               whileTap={{ scale: input.trim() && !isLoading ? 0.95 : 1 }}
             >
-              Send
+              {translations?.chat?.send || "Send"}
             </motion.button>
           </div>
         )}
@@ -2447,8 +2493,9 @@ function DragonMissionChatModal({ onClose }) {
   );
 }
 
-function BreathingExerciseModal({ onClose, onComplete }) {
+function BreathingExerciseModal({ onClose, onComplete, translations }) {
   const { completeMission } = useGameState();
+  const t = translations?.breathing || {};
   const [phase, setPhase] = useState('intro'); // intro, inhale, hold, exhale, complete
   const [count, setCount] = useState(0);
   const [breathCycle, setBreathCycle] = useState(0);
@@ -2562,19 +2609,17 @@ function BreathingExerciseModal({ onClose, onComplete }) {
       >
         {phase === 'intro' && (
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-orange-700 mb-4">🌋 The Dragon's Breath</h2>
+            <h2 className="text-3xl font-bold text-orange-700 mb-4">{t.title || "🌋 The Dragon's Breath"}</h2>
             <div className="bg-white rounded-xl p-6 mb-6">
-              <p className="text-gray-800 mb-4 text-lg">
-                Let's help BLAZE cool down with the <strong>Dragon's Breath</strong> technique!
-              </p>
+              <p className="text-gray-800 mb-4 text-lg" dangerouslySetInnerHTML={{ __html: t.intro || `Let's help BLAZE cool down with the <strong>Dragon's Breath</strong> technique!` }} />
               <div className="text-left space-y-2 text-gray-700">
-                <p>🌬️ <strong>Breathe IN</strong> cool air (4 counts)</p>
-                <p>⏸️ <strong>Hold</strong> your breath (4 counts)</p>
-                <p>🔥 <strong>Breathe OUT</strong> hot air slowly (6 counts)</p>
+                <p dangerouslySetInnerHTML={{ __html: t.stepInhale || "🌬️ <strong>Breathe IN</strong> cool air (4 counts)" }} />
+                <p dangerouslySetInnerHTML={{ __html: t.stepHold || "⏸️ <strong>Hold</strong> your breath (4 counts)" }} />
+                <p dangerouslySetInnerHTML={{ __html: t.stepExhale || "🔥 <strong>Breathe OUT</strong> hot air slowly (6 counts)" }} />
               </div>
             </div>
             <p className="text-sm text-gray-600 italic mb-6">
-              "Deep breathing cools down our angry fire inside"
+              {t.quote || `"Deep breathing cools down our angry fire inside"`}
             </p>
             <motion.button
               onClick={startExercise}
@@ -2582,7 +2627,7 @@ function BreathingExerciseModal({ onClose, onComplete }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Start Breathing Exercise
+              {t.startExercise || "Start Breathing Exercise"}
             </motion.button>
           </div>
         )}
@@ -2590,13 +2635,13 @@ function BreathingExerciseModal({ onClose, onComplete }) {
         {phase !== 'intro' && phase !== 'complete' && (
           <div className="text-center">
             <h3 className="text-2xl font-bold text-orange-700 mb-2">
-              Breath {breathCycle + 1} of {totalCycles}
+              {(t.breathCount || "Breath {current} of {total}").replace('{current}', breathCycle + 1).replace('{total}', totalCycles)}
             </h3>
             
             {/* Volcanic Meter */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-gray-700">🌋 Volcano Heat</span>
+                <span className="text-sm font-semibold text-gray-700">{t.volcanoHeat || "🌋 Volcano Heat"}</span>
                 <span className="text-sm font-bold text-orange-600">{volcanicMeter}%</span>
               </div>
               <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
@@ -2655,11 +2700,11 @@ function BreathingExerciseModal({ onClose, onComplete }) {
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
             >
-              <h2 className="text-3xl font-bold text-green-600 mb-4">🎉 Amazing Work!</h2>
+              <h2 className="text-3xl font-bold text-green-600 mb-4">{t.completeTitle || "🎉 Amazing Work!"}</h2>
             </motion.div>
             <div className="bg-white rounded-xl p-6 mb-6">
               <p className="text-gray-800 mb-4 text-lg">
-                You helped BLAZE cool down! The volcano is calm now. 🌋✨
+                {t.completeMessage || "You helped BLAZE cool down! The volcano is calm now. 🌋✨"}
               </p>
               <div className="mb-4">
                 <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
@@ -2676,7 +2721,7 @@ function BreathingExerciseModal({ onClose, onComplete }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Complete Exercise ✓
+              {t.completeButton || "Complete Exercise ✓"}
             </motion.button>
           </div>
         )}
@@ -2692,7 +2737,12 @@ function BreathingExerciseModal({ onClose, onComplete }) {
   );
 }
 
-function MonkeyChatModal({ onClose }) {
+function MonkeyChatModal({ onClose, translations }) {
+  const t = translations?.npcs?.monkey || {
+    greeting: "Hey, I'll be able to take you to the spring dark forest soon, but I'm just out of gas right now.",
+    close: "Okay"
+  };
+
   return (
     <motion.div 
       className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
@@ -2725,7 +2775,7 @@ function MonkeyChatModal({ onClose }) {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
-              Monkey says:
+              {t.name || "Monkey says:"}
             </motion.h3>
             <motion.p 
               className="text-gray-700"
@@ -2733,7 +2783,7 @@ function MonkeyChatModal({ onClose }) {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              Hey, I'll be able to take you to the spring dark forest soon, but I'm just out of gas right now.
+              {t.greeting}
             </motion.p>
           </div>
         </div>
@@ -2747,14 +2797,21 @@ function MonkeyChatModal({ onClose }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          Okay
+          {t.close}
         </motion.button>
       </motion.div>
     </motion.div>
   );
 }
 
-function GnomeChatModal({ onClose, onTravel, isReturn = false }) {
+function GnomeChatModal({ onClose, onTravel, isReturn = false, translations }) {
+  const t = translations?.npcs?.gnome || {
+    greeting: "I heard there's a dragon in the far lands who has lost his rock collection! I can take you there to help him out!",
+    returnGreeting: "Ready to head back to the Island of Feelings? I can take you there anytime!",
+    travel: "Take me there",
+    notNow: "Not now"
+  };
+
   return (
     <motion.div 
       className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
@@ -2787,7 +2844,7 @@ function GnomeChatModal({ onClose, onTravel, isReturn = false }) {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
-              Maximillion says:
+              {t.name || "Maximillion says:"}
             </motion.h3>
             <motion.p 
               className="text-gray-700"
@@ -2795,9 +2852,7 @@ function GnomeChatModal({ onClose, onTravel, isReturn = false }) {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              {isReturn 
-                ? "Ready to head back to the Island of Feelings? I can take you there anytime!" 
-                : "I heard there's a dragon in the far lands who has lost his rock collection! I can take you there to help him out!"}
+              {isReturn ? t.returnGreeting : t.greeting}
             </motion.p>
           </div>
         </div>
@@ -2814,7 +2869,7 @@ function GnomeChatModal({ onClose, onTravel, isReturn = false }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            {isReturn ? "Take me back" : "Take me there"}
+            {t.travel}
           </motion.button>
           <motion.button
             onClick={onClose}
@@ -2822,7 +2877,7 @@ function GnomeChatModal({ onClose, onTravel, isReturn = false }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Not now
+            {t.notNow}
           </motion.button>
         </motion.div>
       </motion.div>
@@ -2830,8 +2885,15 @@ function GnomeChatModal({ onClose, onTravel, isReturn = false }) {
   );
 }
 
-function DragonChatModal({ onClose }) {
+function DragonChatModal({ onClose, translations }) {
   const { gameState, updateMission, setActiveMission } = useGameState();
+  const t = translations?.npcs?.dragon || {
+    sad: "Rawr! I lost my rock collection and i cant stand it!",
+    happy: "Thank you so much! You found all my precious rocks! I'm so happy!",
+    rocksProgress: "found",
+    helpButton: "I'll help you find them!",
+    thankYouButton: "You're welcome, Vesuvvy!"
+  };
   const isCalm = gameState.missions.blazeBreathingExercise.completed;
   const rockMission = gameState.missions.blazeRockCollection || {
     discovered: false,

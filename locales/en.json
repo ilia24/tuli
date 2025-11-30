@@ -17,6 +17,81 @@
   "common": {
     "loading": "Loading...",
     "error": "Oops! Something went wrong"
+  },
+  "npcs": {
+    "tuli": {
+      "greeting": "Hi there! I'm Tuli, your friendly guide! Click around the world to explore and learn new things!",
+      "close": "Thanks, Tuli!",
+      "welcomeTitle": "Welcome to the Island of Feelings!",
+      "welcomeHello": "Hello! I'm Tuli, your virtual friend. 🌟",
+      "welcomeAdventure": "I'll be with you on this adventure and many more to come!",
+      "welcomeNavigate": "Navigate:",
+      "welcomeNavigateDesc": "Click anywhere to move around the island",
+      "welcomeTalk": "Talk to me:",
+      "welcomeTalkDesc": "Click on me anytime to chat or ask questions",
+      "welcomeMeet": "Meet others:",
+      "welcomeMeetDesc": "Look for glowing characters to interact with them",
+      "welcomeButton": "Let's explore!",
+      "chatLavaWorld": "Hi there! 🔥 Its HOT in here! Have you met BLAZE yet? He seems pretty upset about his rocks. How are YOU feeling?",
+      "chatTutorial": "Hi friend! 🌊 Welcome to the Island of Feelings! The breeze feels nice here, doesn't it? How are you doing today?",
+      "name": "Tuli says:"
+    },
+    "gnome": {
+      "name": "Maximillion says:",
+      "greeting": "I heard there's a dragon in the far lands who has lost his rock collection! I can take you there to help him out!",
+      "returnGreeting": "Ready to head back to the Island of Feelings? I can take you there anytime!",
+      "travel": "Take me there",
+      "notNow": "Not now"
+    },
+    "monkey": {
+      "name": "Monkey says:",
+      "greeting": "Hey, I'll be able to take you to the spring dark forest soon, but I'm just out of gas right now.",
+      "close": "Okay"
+    },
+    "dragon": {
+      "name": "Vesuvvy says:",
+      "sad": "Rawr! I lost my rock collection and i cant stand it!",
+      "happy": "Thank you so much! You found all my precious rocks! I'm so happy!",
+      "rocksProgress": "found",
+      "helpButton": "I'll help you find them!",
+      "thankYouButton": "You're welcome, Vesuvvy!"
+    }
+  },
+  "blaze": {
+    "name": "BLAZE says:",
+    "missionInitial": "Hey! 😮 Have you seen BLAZE? He looks really upset! What do you think we could do to help him calm down?",
+    "angry": "Someone knocked over my rock collection that took me WEEKS to build! Im so MAD I could EXPLODE! Everything feels HOT and I want to ROAR!",
+    "grateful": "Thank you so much for helping me calm down! 😊 That breathing exercise really helped. I feel so much better now! You're a great friend!",
+    "askForHelp": "Now that I'm calm, I can think clearly! 🤔 My precious rock collection is scattered all over the lava caves. I had 4 special rocks... Can you help me find them? They mean everything to me!",
+    "searching": "You're doing great! You've found {count} out of {total} rocks. Keep looking around the caves! 🔍",
+    "complete": "You found ALL my rocks! 🎉 Thank you so much! You're the best friend a dragon could ask for!",
+    "helpButton": "Help BLAZE",
+    "thankYouButton": "You're welcome, BLAZE! 🐉",
+    "acceptButton": "I'll help you find your rocks!",
+    "searchButton": "I'll keep looking!"
+  },
+  "breathing": {
+    "startButton": "🌬️ Start Breathing Exercise with BLAZE",
+    "title": "🌋 The Dragon's Breath",
+    "intro": "Let's help BLAZE cool down with the <strong>Dragon's Breath</strong> technique!",
+    "stepInhale": "🌬️ <strong>Breathe IN</strong> cool air (4 counts)",
+    "stepHold": "⏸️ <strong>Hold</strong> your breath (4 counts)",
+    "stepExhale": "🔥 <strong>Breathe OUT</strong> hot air slowly (6 counts)",
+    "quote": "\"Deep breathing cools down our angry fire inside\"",
+    "startExercise": "Start Breathing Exercise",
+    "breathCount": "Breath {current} of {total}",
+    "volcanoHeat": "🌋 Volcano Heat",
+    "inhale": "Breathe IN 🌬️",
+    "hold": "Hold ⏸️",
+    "exhale": "Breathe OUT 🔥",
+    "completeTitle": "🎉 Amazing Work!",
+    "completeMessage": "You helped BLAZE cool down! The volcano is calm now. 🌋✨",
+    "completeButton": "Complete Exercise ✓"
+  },
+  "chat": {
+    "placeholder": "Type your message...",
+    "send": "Send"
+  }
   }
 }
 

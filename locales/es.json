@@ -17,6 +17,81 @@
   "common": {
     "loading": "Cargando...",
     "error": "¡Ups! Algo salió mal"
+  },
+  "npcs": {
+    "tuli": {
+      "greeting": "¡Hola! ¡Soy Tuli, tu guía amigable! ¡Haz clic alrededor del mundo para explorar y aprender cosas nuevas!",
+      "close": "¡Gracias, Tuli!",
+      "welcomeTitle": "¡Bienvenido a la Isla de los Sentimientos!",
+      "welcomeHello": "¡Hola! Soy Tuli, tu amigo virtual. 🌟",
+      "welcomeAdventure": "¡Estaré contigo en esta aventura y en muchas más!",
+      "welcomeNavigate": "Navegar:",
+      "welcomeNavigateDesc": "Haz clic en cualquier lugar para moverte por la isla",
+      "welcomeTalk": "Habla conmigo:",
+      "welcomeTalkDesc": "Haz clic en mí en cualquier momento para charlar o hacer preguntas",
+      "welcomeMeet": "Conoce a otros:",
+      "welcomeMeetDesc": "Busca personajes brillantes para interactuar con ellos",
+      "welcomeButton": "¡Exploremos!",
+      "chatLavaWorld": "¡Hola! 🔥 ¡Hace CALOR aquí! ¿Has conocido a BLAZE? Parece bastante molesto por sus rocas. ¿Cómo te SIENTES TÚ?",
+      "chatTutorial": "¡Hola amigo! 🌊 ¡Bienvenido a la Isla de los Sentimientos! La brisa se siente agradable aquí, ¿verdad? ¿Cómo estás hoy?",
+      "name": "Tuli dice:"
+    },
+    "gnome": {
+      "name": "Maximillion dice:",
+      "greeting": "¡Escuché que hay un dragón en las tierras lejanas que perdió su colección de rocas! ¡Puedo llevarte allí para ayudarlo!",
+      "returnGreeting": "¿Listo para regresar a la Isla de los Sentimientos? ¡Puedo llevarte en cualquier momento!",
+      "travel": "Llévame allí",
+      "notNow": "Ahora no"
+    },
+    "monkey": {
+      "name": "Mono dice:",
+      "greeting": "Oye, podré llevarte al bosque oscuro de primavera pronto, pero ahora me quedé sin gasolina.",
+      "close": "Okay"
+    },
+    "dragon": {
+      "name": "Vesuvvy dice:",
+      "sad": "¡Rawr! ¡Perdí mi colección de rocas y no lo soporto!",
+      "happy": "¡Muchas gracias! ¡Encontraste todas mis rocas preciosas! ¡Estoy tan feliz!",
+      "rocksProgress": "encontradas",
+      "helpButton": "¡Te ayudaré a encontrarlas!",
+      "thankYouButton": "¡De nada, Vesuvvy!"
+    }
+  },
+  "blaze": {
+    "name": "BLAZE dice:",
+    "missionInitial": "¡Oye! 😮 ¿Has visto a BLAZE? ¡Se ve muy molesto! ¿Qué crees que podríamos hacer para ayudarlo a calmarse?",
+    "angry": "¡Alguien derribó mi colección de rocas que me tomó SEMANAS construir! ¡Estoy tan ENOJADO que podría EXPLOTAR! ¡Todo se siente CALIENTE y quiero RUGIR!",
+    "grateful": "¡Muchas gracias por ayudarme a calmarme! 😊 Ese ejercicio de respiración realmente ayudó. ¡Me siento mucho mejor ahora! ¡Eres un gran amigo!",
+    "askForHelp": "¡Ahora que estoy tranquilo, puedo pensar con claridad! 🤔 Mi preciosa colección de rocas está esparcida por todas las cuevas de lava. Tenía 4 rocas especiales... ¿Puedes ayudarme a encontrarlas? ¡Significan todo para mí!",
+    "searching": "¡Lo estás haciendo genial! Has encontrado {count} de {total} rocas. ¡Sigue buscando por las cuevas! 🔍",
+    "complete": "¡Encontraste TODAS mis rocas! 🎉 ¡Muchas gracias! ¡Eres el mejor amigo que un dragón podría pedir!",
+    "helpButton": "Ayudar a BLAZE",
+    "thankYouButton": "¡De nada, BLAZE! 🐉",
+    "acceptButton": "¡Te ayudaré a encontrar tus rocas!",
+    "searchButton": "¡Seguiré buscando!"
+  },
+  "breathing": {
+    "startButton": "🌬️ Iniciar Ejercicio de Respiración con BLAZE",
+    "title": "🌋 La Respiración del Dragón",
+    "intro": "¡Ayudemos a BLAZE a calmarse con la técnica <strong>Respiración del Dragón</strong>!",
+    "stepInhale": "🌬️ <strong>Inhalar</strong> aire fresco (4 conteos)",
+    "stepHold": "⏸️ <strong>Aguantar</strong> la respiración (4 conteos)",
+    "stepExhale": "🔥 <strong>Exhalar</strong> aire caliente despacio (6 conteos)",
+    "quote": "\"La respiración profunda enfría nuestro fuego interior\"",
+    "startExercise": "Iniciar Ejercicio de Respiración",
+    "breathCount": "Respiración {current} de {total}",
+    "volcanoHeat": "🌋 Calor del Volcán",
+    "inhale": "Inhalar 🌬️",
+    "hold": "Aguantar ⏸️",
+    "exhale": "Exhalar 🔥",
+    "completeTitle": "🎉 ¡Increíble Trabajo!",
+    "completeMessage": "¡Ayudaste a BLAZE a calmarse! El volcán está tranquilo ahora. 🌋✨",
+    "completeButton": "Completar Ejercicio ✓"
+  },
+  "chat": {
+    "placeholder": "Escribe tu mensaje...",
+    "send": "Enviar"
+  }
   }
 }
 

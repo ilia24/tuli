@@ -7,10 +7,21 @@ const openai = new OpenAI({
 
 export async function POST(request) {
   try {
-    const { messages, worldContext, missionContext } = await request.json();
+    const { messages, worldContext, missionContext, language = 'en' } = await request.json();
 
+    // Language-specific instruction
+    const languageNames = {
+      'en': 'English',
+      'ro': 'Romanian',
+      'pt': 'Portuguese',
+      'es': 'Spanish'
+    };
+    const languageName = languageNames[language] || 'English';
+    
     // Base system prompt for Tuli
     let systemPrompt = `You are Tuli, a warm, supportive, and friendly virtual companion for children aged 6-12. Your role is to help children understand and navigate their emotions and feelings in a safe, non-judgmental way.
+
+IMPORTANT: Respond in ${languageName}. All your responses must be in ${languageName}.
 
 Key guidelines:
 - Use simple, age-appropriate language
