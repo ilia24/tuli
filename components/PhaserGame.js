@@ -389,7 +389,7 @@ export default function PhaserGame() {
           this.createNPC(9, 21, 'monkey', 'openMonkeyChat', 0.5);
         } else if (this.currentWorldKey === 'lavaWorld' || this.currentWorldKey === 'lavaWorldHappy') {
           // BLAZE the Dragon at (54, 17)
-          this.createDragon(54, 17);
+          this.createDragon(54, 18);
           // Maximillion the Gnome at (7, 10) - to travel back
           this.createNPC(7, 10, 'gnome', 'openGnomeChatReturn');
           
@@ -2831,9 +2831,9 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getPhaseText = () => {
-    if (phase === 'inhale') return 'Breathe IN cool air...';
-    if (phase === 'hold') return 'Hold your breath...';
-    if (phase === 'exhale') return 'Breathe OUT hot air slowly...';
+    if (phase === 'inhale') return t.inhale || 'Breathe IN cool air...';
+    if (phase === 'hold') return t.hold || 'Hold your breath...';
+    if (phase === 'exhale') return t.exhale || 'Breathe OUT hot air slowly...';
     return '';
   };
 

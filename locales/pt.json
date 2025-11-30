@@ -93,9 +93,9 @@
     "startExercise": "Iniciar Exercício de Respiração",
     "breathCount": "Respiração {current} de {total}",
     "volcanoHeat": "🌋 Calor do Vulcão",
-    "inhale": "Inspire 🌬️",
-    "hold": "Segure ⏸️",
-    "exhale": "Expire 🔥",
+    "inhale": "Inspire ar fresco...",
+    "hold": "Segure a respiração...",
+    "exhale": "Expire ar quente devagar...",
     "completeTitle": "🎉 Trabalho Incrível!",
     "completeMessage": "Você ajudou BLAZE a se acalmar! O vulcão está calmo agora. 🌋✨",
     "completeButton": "Completar Exercício ✓"

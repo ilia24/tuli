@@ -93,9 +93,9 @@
     "startExercise": "Start Breathing Exercise",
     "breathCount": "Breath {current} of {total}",
     "volcanoHeat": "🌋 Volcano Heat",
-    "inhale": "Breathe IN 🌬️",
-    "hold": "Hold ⏸️",
-    "exhale": "Breathe OUT 🔥",
+    "inhale": "Breathe IN cool air...",
+    "hold": "Hold your breath...",
+    "exhale": "Breathe OUT hot air slowly...",
     "completeTitle": "🎉 Amazing Work!",
     "completeMessage": "You helped BLAZE cool down! The volcano is calm now. 🌋✨",
     "completeButton": "Complete Exercise ✓"

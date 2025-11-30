@@ -93,9 +93,9 @@
     "startExercise": "Începe Exercițiul de Respirație",
     "breathCount": "Respirația {current} din {total}",
     "volcanoHeat": "🌋 Căldura Vulcanului",
-    "inhale": "Inspiră 🌬️",
-    "hold": "Ține ⏸️",
-    "exhale": "Expiră 🔥",
+    "inhale": "Inspiră aer rece...",
+    "hold": "Ține respirația...",
+    "exhale": "Expiră aer fierbinte încet...",
     "completeTitle": "🎉 Excelent!",
     "completeMessage": "L-ai ajutat pe BLAZE să se calmeze! Vulcanul este calm acum. 🌋✨",
     "completeButton": "Completează Exercițiul ✓"
