@@ -27,7 +27,7 @@ export default function WorldEditor({ onBackToGame }) {
       ? window.currentGameWorld 
       : 'tutorial';
   });
-  const [availableWorlds] = useState(['tutorial', 'lavaWorld']);
+  const [availableWorlds] = useState(['tutorial', 'lavaWorld', 'lavaWorldHappy']);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveToast, setShowSaveToast] = useState(false);

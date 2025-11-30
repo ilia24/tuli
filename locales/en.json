@@ -47,7 +47,7 @@
     },
     "monkey": {
       "name": "Monkey says:",
-      "greeting": "Hey, I'll be able to take you to the spring dark forest soon, but I'm just out of gas right now.",
+      "greeting": "Hey, I'll be able to take you to the enchanted forest soon, but I'm just out of gas right now.",
       "close": "Okay"
     },
     "dragon": {
@@ -68,13 +68,19 @@
     "angry": "Someone knocked over my rock collection that took me WEEKS to build! Im so MAD I could EXPLODE! Everything feels HOT and I want to ROAR!",
     "grateful": "Thank you so much for helping me calm down! 😊 That breathing exercise really helped. I feel so much better now! You're a great friend!",
     "askForHelp": "Now that I'm calm, I can think clearly! 🤔 My precious rock collection is scattered all over the lava caves. I had 4 special rocks... Can you help me find them? They mean everything to me!",
-    "searching": "You're doing great! You've found {count} out of {total} rocks. Keep looking around the caves! 🔍",
-    "complete": "You found ALL my rocks! 🎉 Thank you so much! You're the best friend a dragon could ask for!",
+    "searching0": "Let me know once you've found them please! 🔍",
+    "searching1": "You've made some progress! Keep it up! 💪",
+    "searching2": "You're halfway there! You're doing amazing! 🌟",
+    "searching3": "Almost done! Just one more rock to find! 🎯",
+    "complete": "You found ALL my rocks! 🎉 Thank you so much! You're the best friend a dragon could ask for! Heres a token of calm, use this wisely in your everyday life!",
     "helpButton": "Help BLAZE",
     "thankYouButton": "You're welcome, BLAZE! 🐉",
     "acceptButton": "I'll help you find your rocks!",
     "searchButton": "I'll keep looking!",
-    "happyButton": "Happy to help! 🐉"
+    "happyButton": "Happy to help! 🐉",
+    "trophyTitle": "Token of Calm",
+    "trophyDescription": "Use this as a reminder every day to remember the breathing techniques that BLAZE has taught you.",
+    "trophyClose": "Close"
   },
   "breathing": {
     "startButton": "🌬️ Start Breathing Exercise with BLAZE",

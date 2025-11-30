@@ -36,8 +36,7 @@
       "welcomeMeetDesc": "Caută personaje strălucitoare pentru a interacționa cu ele",
       "welcomeButton": "Să explorăm!",
       "chatLavaWorld": "Salut! 🔥 E FIERBINTE aici! L-ai întâlnit pe BLAZE? Pare destul de supărat pentru pietrele lui. Cum te simți TU?",
-      "chatTutorial": "Salut prietene! 🌊 Bine ai venit pe Insula Sentimentelor! Briza se simte plăcut aici, nu-i așa? Cum te simți astăzi?",
-      "name": "Tuli spune:"
+      "chatTutorial": "Salut prietene! 🌊 Bine ai venit pe Insula Sentimentelor! Briza se simte plăcut aici, nu-i așa? Cum te simți astăzi?"
     },
     "gnome": {
       "name": "Maximillion spune:",
@@ -48,7 +47,7 @@
     },
     "monkey": {
       "name": "Maimuța spune:",
-      "greeting": "Hei, o să te pot duce la pădurea întunecată de primăvară în curând, dar acum sunt fără benzină.",
+      "greeting": "Hei, o să te pot duce la pădurea fermecată în curând, dar acum sunt fără benzină.",
       "close": "Bine"
     },
     "dragon": {
@@ -69,13 +68,19 @@
     "angry": "Cineva mi-a doborât colecția de pietre care mi-a luat SĂPTĂMÂNI să o construiesc! Sunt atât de SUPĂRAT încât aș putea EXPLODA! Totul se simte FIERBINTE și vreau să RĂC!",
     "grateful": "Mulțumesc mult pentru că m-ai ajutat să mă calm! 😊 Exercițiul de respirație a ajutat cu adevărat. Mă simt mult mai bine acum! Ești un prieten minunat!",
     "askForHelp": "Acum că sunt calm, pot gândi clar! 🤔 Colecția mea prețioasă de pietre este împrăștiată peste tot în peșterile de lavă. Aveam 4 pietre speciale... Mă poți ajuta să le găsesc? Înseamnă totul pentru mine!",
-    "searching": "Te descurci grozav! Ai găsit {count} din {total} pietre. Continuă să cauți prin peșteri! 🔍",
-    "complete": "Ai găsit TOATE pietrele mele! 🎉 Mulțumesc mult! Ești cel mai bun prieten pe care l-ar putea avea un dragon!",
+    "searching0": "Anunță-mă când le-ai găsit, te rog! 🔍",
+    "searching1": "Ai făcut progrese! Continuă tot așa! 💪",
+    "searching2": "Ești la jumătatea drumului! Te descurci minunat! 🌟",
+    "searching3": "Aproape ai terminat! Doar o piatră mai e de găsit! 🎯",
+    "complete": "Ai găsit TOATE pietrele mele! 🎉 Mulțumesc mult! Ești cel mai bun prieten pe care l-ar putea avea un dragon! Iată un simbol al calmului, folosește-l cu înțelepciune în viața ta de zi cu zi!",
     "helpButton": "Ajută-l pe BLAZE",
     "thankYouButton": "Cu plăcere, BLAZE! 🐉",
     "acceptButton": "Te voi ajuta să-ți găsești pietrele!",
     "searchButton": "Voi continua să caut!",
-    "happyButton": "Bucuros să ajut! 🐉"
+    "happyButton": "Bucuros să ajut! 🐉",
+    "trophyTitle": "Simbol al Calmului",
+    "trophyDescription": "Folosește-l ca o reamintire în fiecare zi pentru a-ți aminti tehnicile de respirație pe care BLAZE ți le-a învățat.",
+    "trophyClose": "Închide"
   },
   "breathing": {
     "startButton": "🌬️ Începe Exercițiul de Respirație cu BLAZE",
@@ -98,7 +103,6 @@
   "chat": {
     "placeholder": "Scrie mesajul tău...",
     "send": "Trimite"
-  }
   }
 }
 

@@ -36,8 +36,7 @@
       "welcomeMeetDesc": "Busca personajes brillantes para interactuar con ellos",
       "welcomeButton": "¡Exploremos!",
       "chatLavaWorld": "¡Hola! 🔥 ¡Hace CALOR aquí! ¿Has conocido a BLAZE? Parece bastante molesto por sus rocas. ¿Cómo te SIENTES TÚ?",
-      "chatTutorial": "¡Hola amigo! 🌊 ¡Bienvenido a la Isla de los Sentimientos! La brisa se siente agradable aquí, ¿verdad? ¿Cómo estás hoy?",
-      "name": "Tuli dice:"
+      "chatTutorial": "¡Hola amigo! 🌊 ¡Bienvenido a la Isla de los Sentimientos! La brisa se siente agradable aquí, ¿verdad? ¿Cómo estás hoy?"
     },
     "gnome": {
       "name": "Maximillion dice:",
@@ -48,7 +47,7 @@
     },
     "monkey": {
       "name": "Mono dice:",
-      "greeting": "Oye, podré llevarte al bosque oscuro de primavera pronto, pero ahora me quedé sin gasolina.",
+      "greeting": "Oye, podré llevarte al bosque encantado pronto, pero ahora me quedé sin gasolina.",
       "close": "Okay"
     },
     "dragon": {
@@ -69,13 +68,19 @@
     "angry": "¡Alguien derribó mi colección de rocas que me tomó SEMANAS construir! ¡Estoy tan ENOJADO que podría EXPLOTAR! ¡Todo se siente CALIENTE y quiero RUGIR!",
     "grateful": "¡Muchas gracias por ayudarme a calmarme! 😊 Ese ejercicio de respiración realmente ayudó. ¡Me siento mucho mejor ahora! ¡Eres un gran amigo!",
     "askForHelp": "¡Ahora que estoy tranquilo, puedo pensar con claridad! 🤔 Mi preciosa colección de rocas está esparcida por todas las cuevas de lava. Tenía 4 rocas especiales... ¿Puedes ayudarme a encontrarlas? ¡Significan todo para mí!",
-    "searching": "¡Lo estás haciendo genial! Has encontrado {count} de {total} rocas. ¡Sigue buscando por las cuevas! 🔍",
-    "complete": "¡Encontraste TODAS mis rocas! 🎉 ¡Muchas gracias! ¡Eres el mejor amigo que un dragón podría pedir!",
+    "searching0": "¡Avísame cuando las hayas encontrado, por favor! 🔍",
+    "searching1": "¡Has hecho algún progreso! ¡Sigue así! 💪",
+    "searching2": "¡Estás a mitad de camino! ¡Lo estás haciendo increíble! 🌟",
+    "searching3": "¡Casi terminas! ¡Solo una roca más para encontrar! 🎯",
+    "complete": "¡Encontraste TODAS mis rocas! 🎉 ¡Muchas gracias! ¡Eres el mejor amigo que un dragón podría pedir! ¡Aquí está un símbolo de calma, úsalo sabiamente en tu vida diaria!",
     "helpButton": "Ayudar a BLAZE",
     "thankYouButton": "¡De nada, BLAZE! 🐉",
     "acceptButton": "¡Te ayudaré a encontrar tus rocas!",
     "searchButton": "¡Seguiré buscando!",
-    "happyButton": "¡Feliz de ayudar! 🐉"
+    "happyButton": "¡Feliz de ayudar! 🐉",
+    "trophyTitle": "Símbolo de Calma",
+    "trophyDescription": "Usa esto como un recordatorio todos los días para recordar las técnicas de respiración que BLAZE te ha enseñado.",
+    "trophyClose": "Cerrar"
   },
   "breathing": {
     "startButton": "🌬️ Iniciar Ejercicio de Respiración con BLAZE",

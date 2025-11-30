@@ -33,6 +33,7 @@ export default function PhaserGame() {
   const [showMonkeyChat, setShowMonkeyChat] = useState(false);
   const [showDragonChat, setShowDragonChat] = useState(false);
   const [showBreathingExercise, setShowBreathingExercise] = useState(false);
+  const [showDragonTrophy, setShowDragonTrophy] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('');
   const dragonGlowTimerRef = useRef(null);
@@ -66,15 +67,33 @@ export default function PhaserGame() {
     window.setActiveMission = setActiveMission;
     window.updateMission = updateMission;
     window.makeDragonHappy = () => {
-      // Direct access to change dragon sprite
+      console.warn('makeDragonHappy called');
+      console.warn('Has phaserGameRef.current:', !!phaserGameRef.current);
+      console.warn('Has scene:', !!phaserGameRef.current?.scene?.scenes[0]);
+      console.warn('Has dragon:', !!phaserGameRef.current?.scene?.scenes[0]?.dragon);
+      // Direct access to change dragon sprite and transition to happy world
       if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
         const scene = phaserGameRef.current.scene.scenes[0];
         if (scene.dragon) {
-          console.log('Making dragon happy via window function');
+          console.log('Making dragon happy and swapping to lavaWorldHappy tiles');
           scene.dragon.setTexture('dragon-happy');
           scene.dragon.clearTint();
           scene.dragon.isHappy = true;
+          
+          // Remove dragon's glow effect
+          if (scene.dragon.glowCircle) {
+            scene.tweens.killTweensOf(scene.dragon.glowCircle);
+            scene.dragon.glowCircle.destroy();
+            scene.dragon.glowCircle = null;
+          }
+          
+          // Swap world tiles seamlessly without moving player
+          scene.swapWorldTiles('lavaWorldHappy');
+        } else {
+          console.error('Dragon not found on scene');
         }
+      } else {
+        console.error('Scene not available');
       }
     };
     window.startWorldTransition = (worldName) => {
@@ -102,7 +121,7 @@ export default function PhaserGame() {
         
         // Check if all rocks found
         if (newRocksFound >= rockMission.totalRocks) {
-          updateMission('blazeRockCollection', { completed: true, allRocksFound: true });
+          updateMission('blazeRockCollection', { allRocksFound: true });
           // Set mission to talk to BLAZE
           const talkMission = translations?.blaze?.missionTalkToBlaze || 'Talk to BLAZE';
           setActiveMission(talkMission);
@@ -150,6 +169,7 @@ export default function PhaserGame() {
         this.dragonSeenTriggered = false; // Flag to prevent multiple dragon detection triggers
         this.rocks = []; // Collectible rocks
         this.collectedRockIds = new Set(); // Track which rocks have been collected
+        this.worldTiles = []; // Store all tile sprites for easy replacement
       }
 
       preload() {
@@ -233,8 +253,7 @@ export default function PhaserGame() {
 
         // Debug: Check firecave texture loading
         const firecaveTexture = this.textures.get('firecave');
-        const firecaveFrame = firecaveTexture.get(0);
-        const firecaveSource = firecaveTexture.source[0];
+
 
         // Test render frame 1 info
         const frame1 = firecaveTexture.get(1);
@@ -285,7 +304,7 @@ export default function PhaserGame() {
 
         // Create background (world-specific color)
         const background = this.add.graphics();
-        const backgroundColor = this.currentWorldKey === 'lavaWorld' ? 0x3a3a3a : 0x2594D0; // Dark gray for lava, blue for tutorial
+        const backgroundColor = (this.currentWorldKey === 'lavaWorld' || this.currentWorldKey === 'lavaWorldHappy') ? 0x3a3a3a : 0x2594D0; // Dark gray for lava, blue for tutorial
         background.fillStyle(backgroundColor, 1);
         background.fillRect(0, 0, width, height);
 
@@ -368,14 +387,16 @@ export default function PhaserGame() {
           this.createNPC(39, 48, 'gnome', 'openGnomeChat');
           // Monkey at (9, 21) - scaled down to half size
           this.createNPC(9, 21, 'monkey', 'openMonkeyChat', 0.5);
-        } else if (this.currentWorldKey === 'lavaWorld') {
+        } else if (this.currentWorldKey === 'lavaWorld' || this.currentWorldKey === 'lavaWorldHappy') {
           // BLAZE the Dragon at (54, 17)
           this.createDragon(54, 17);
           // Maximillion the Gnome at (7, 10) - to travel back
           this.createNPC(7, 10, 'gnome', 'openGnomeChatReturn');
           
-          // Create rocks if mission is accepted
-          this.createRocks();
+          // Create rocks if mission is accepted (only in regular lavaWorld, not happy version)
+          if (this.currentWorldKey === 'lavaWorld') {
+            this.createRocks();
+          }
         }
       }
 
@@ -574,12 +595,15 @@ export default function PhaserGame() {
         const gameState = window.getGameState();
         const isExerciseCompleted = gameState && gameState.missions.blazeBreathingExercise.completed;
         
-        // Create pulsing glow behind dragon - only show if exercise is COMPLETED
-        const glow = this.add.circle(dragonX, dragonY, 30, 0xff4400, isExerciseCompleted ? 0.4 : 0);
+        // Check if we're in the happy world
+        const isHappyWorld = this.currentWorldKey === 'lavaWorldHappy';
+        
+        // Create pulsing glow behind dragon - only show if exercise is COMPLETED and NOT in happy world
+        const glow = this.add.circle(dragonX, dragonY, 30, 0xff4400, (isExerciseCompleted && !isHappyWorld) ? 0.4 : 0);
         glow.setDepth(97);
         
-        // Only animate glow if exercise is completed
-        if (isExerciseCompleted) {
+        // Only animate glow if exercise is completed and not in happy world
+        if (isExerciseCompleted && !isHappyWorld) {
         this.tweens.add({
           targets: glow,
           scaleX: 1.3,
@@ -592,7 +616,9 @@ export default function PhaserGame() {
         });
         }
         
-        const dragon = this.add.image(dragonX, dragonY, 'dragon-idle');
+        // Use happy sprite if in happy world, otherwise use idle
+        const dragonSprite = isHappyWorld ? 'dragon-happy' : 'dragon-idle';
+        const dragon = this.add.image(dragonX, dragonY, dragonSprite);
         dragon.setScale(1.2);
         dragon.setDepth(98);
         
@@ -604,16 +630,24 @@ export default function PhaserGame() {
         this.npcs.push(glow);
         this.npcs.push(dragon);
         
-        // Store reference for later updates
-        dragon.glowCircle = glow;
+        // Store reference for later updates (but not if we're in happy world since glow should be invisible)
+        if (!isHappyWorld) {
+          dragon.glowCircle = glow;
+        }
         
         // Track dragon animation state
         dragon.isAnimating = false;
+        dragon.isHappy = isHappyWorld;
         
         // Random blink animation
         const scheduleNextBlink = () => {
           const delay = Phaser.Math.Between(2000, 5000); // Random 2-5 seconds
           this.time.delayedCall(delay, () => {
+            // Don't blink if dragon is happy
+            if (dragon.isHappy) {
+              return;
+            }
+            
             if (!dragon.isAnimating) {
             // Blink
             dragon.setTexture('dragon-blink');
@@ -630,15 +664,20 @@ export default function PhaserGame() {
         
         // Random fire-shooting animation with vibration
         const scheduleNextFire = () => {
-          // Check if breathing exercise is completed - if so, don't fire
+          // Check if breathing exercise is completed or dragon is happy - if so, don't fire
           const gameState = window.getGameState();
           if (gameState && gameState.missions.blazeBreathingExercise.completed) {
             return; // Dragon is calm now, no more fire
           }
           
+          // Also don't fire if dragon is happy
+          if (dragon.isHappy) {
+            return;
+          }
+          
           const delay = Phaser.Math.Between(3000, 8000); // Random 3-8 seconds
           this.time.delayedCall(delay, () => {
-            if (!dragon.isAnimating) {
+            if (!dragon.isAnimating && !dragon.isHappy) {
               dragon.isAnimating = true;
               
               // Store original position
@@ -676,6 +715,9 @@ export default function PhaserGame() {
         };
         scheduleNextFire();
         
+        // Store dragon reference for updates (always, regardless of exercise state)
+        this.dragon = dragon;
+        
         // Hover and click effects - only add if exercise is completed
         if (isExerciseCompleted) {
         dragon.on('pointerover', () => {
@@ -687,45 +729,7 @@ export default function PhaserGame() {
         });
         
         // Click to open chat
-        dragon.on('pointerdown', (pointer) => {
-          if (pointer.leftButtonDown()) {
-            this.clickedOnTuli = true;
-            
-            // Get current game state
-            const gameState = window.getGameState ? window.getGameState() : {};
-            const rockMission = gameState.missions?.blazeRockCollection || {};
-            
-            console.log('Dragon clicked, rockMission:', rockMission, 'dragon.isHappy:', dragon.isHappy);
-            
-            // Check if all rocks collected and haven't talked yet
-            if (rockMission.allRocksFound && !rockMission.talkedToBlaze) {
-              console.log('All rocks found! Changing dragon to happy sprite');
-              
-              // Change to happy sprite immediately
-              if (window.makeDragonHappy) {
-                window.makeDragonHappy();
-              }
-              
-              // Mark as talked to
-              if (window.updateMission) {
-                window.updateMission('blazeRockCollection', { talkedToBlaze: true });
-              }
-              
-              // Clear mission immediately
-              if (window.setActiveMission) {
-                window.setActiveMission(null);
-              }
-            }
-            
-            // Always open chat modal
-            if (window.openDragonChat) {
-              window.openDragonChat();
-            }
-          }
-        });
-        
-        // Store dragon reference for updates
-        this.dragon = dragon;
+        // Note: Click handler is on dragonNPC in enableDragonGlow(), not here
       }
       }
       
@@ -773,7 +777,32 @@ export default function PhaserGame() {
             dragonNPC.on('pointerdown', (pointer) => {
               if (pointer.leftButtonDown()) {
                 this.clickedOnTuli = true;
+                const gameState = window.getGameState ? window.getGameState() : {};
+                const rockMission = gameState.missions?.blazeRockCollection || {};
+                console.log('Dragon clicked, rockMission:', rockMission);
+                console.log('gameState:', gameState);
                 
+                // Check if all rocks collected and haven't talked yet
+                if (rockMission.allRocksFound && !rockMission.talkedToBlaze) {
+                  console.log('All rocks found! Changing dragon to happy sprite');
+                  
+                  // Change to happy sprite immediately
+                  if (window.makeDragonHappy) {
+                    window.makeDragonHappy();
+                  }
+                  
+                  // Mark as talked to and complete the mission
+                  if (window.updateMission) {
+                    window.updateMission('blazeRockCollection', { talkedToBlaze: true, completed: true });
+                  }
+                  
+                  // Clear mission immediately
+                  if (window.setActiveMission) {
+                    window.setActiveMission(null);
+                  }
+                }
+                
+                // Always open chat modal
                 if (window.openDragonChat) {
                   window.openDragonChat();
                 }
@@ -869,7 +898,19 @@ export default function PhaserGame() {
         });
       }
 
-      loadWorld(worldKey) {
+      loadWorld(worldKey, preservePosition = false) {
+        // Save current player and follower positions before clearing
+        let savedPlayerX, savedPlayerY, savedFollowerX, savedFollowerY;
+        if (preservePosition && this.playerSprites && this.followerSprites) {
+          savedPlayerX = this.playerSprites.x;
+          savedPlayerY = this.playerSprites.y;
+          savedFollowerX = this.followerSprites.x;
+          savedFollowerY = this.followerSprites.y;
+        }
+        
+        // Remember the previous world for spawn point logic
+        const previousWorldKey = this.currentWorldKey;
+        
         // Clear current world
         // Destroy all NPCs explicitly first
         if (this.npcs && this.npcs.length > 0) {
@@ -899,16 +940,29 @@ export default function PhaserGame() {
         this.stopWalkAnimation();
         this.stopFollowerWalkAnimation();
         
-        // Load new world
-        this.currentWorldKey = worldKey;
-        this.currentWorld = getWorld(worldKey);
+        // Load new world - but check if we should auto-upgrade to happy version
+        let actualWorldKey = worldKey;
+        if (worldKey === 'lavaWorld') {
+          const gameState = window.getGameState ? window.getGameState() : {};
+          const breathingCompleted = gameState?.missions?.blazeBreathingExercise?.completed;
+          const rocksCompleted = gameState?.missions?.blazeRockCollection?.completed;
+          
+          // If both missions are complete, upgrade to happy world
+          if (breathingCompleted && rocksCompleted) {
+            actualWorldKey = 'lavaWorldHappy';
+            console.log('Auto-upgrading lavaWorld to lavaWorldHappy (missions complete)');
+          }
+        }
+        
+        this.currentWorldKey = actualWorldKey;
+        this.currentWorld = getWorld(actualWorldKey);
         
         // Update global reference for editor
-        window.currentGameWorld = worldKey;
+        window.currentGameWorld = actualWorldKey;
         
         // Update game state with new world
         if (window.updateGameState) {
-          window.updateGameState({ currentWorld: worldKey });
+          window.updateGameState({ currentWorld: actualWorldKey });
         }
         
         // Recreate everything
@@ -916,7 +970,7 @@ export default function PhaserGame() {
         const height = this.scale.height;
         
         const background = this.add.graphics();
-        const backgroundColor = this.currentWorldKey === 'lavaWorld' ? 0x3a3a3a : 0x2594D0; // Dark gray for lava, blue for tutorial
+        const backgroundColor = (this.currentWorldKey === 'lavaWorld' || this.currentWorldKey === 'lavaWorldHappy') ? 0x3a3a3a : 0x2594D0; // Dark gray for lava, blue for tutorial
         background.fillStyle(backgroundColor, 1);
         background.fillRect(0, 0, width, height);
         
@@ -925,22 +979,47 @@ export default function PhaserGame() {
         
         this.createWorldFromLayers();
         
-        const spawnX = this.worldOffsetX + (this.currentWorld.spawnPoint.x * this.tileSize);
-        const spawnY = this.worldOffsetY + (this.currentWorld.spawnPoint.y * this.tileSize);
+        // Use saved positions if preserving, otherwise use spawn point
+        let spawnX, spawnY, followerX, followerY;
+        if (preservePosition && savedPlayerX !== undefined) {
+          spawnX = savedPlayerX;
+          spawnY = savedPlayerY;
+          followerX = savedFollowerX;
+          followerY = savedFollowerY;
+        } else {
+          // Check if coming from lava world to tutorial world - use custom spawn point
+          const comingFromLavaWorld = (previousWorldKey === 'lavaWorld' || previousWorldKey === 'lavaWorldHappy');
+          const goingToTutorial = worldKey === 'tutorial';
+          
+          if (comingFromLavaWorld && goingToTutorial) {
+            // Custom spawn point when returning from lava world
+            spawnX = this.worldOffsetX + (40 * this.tileSize);
+            spawnY = this.worldOffsetY + (50 * this.tileSize);
+            followerX = spawnX - 32;
+            followerY = spawnY;
+          } else {
+            // Use default spawn point from world config
+            spawnX = this.worldOffsetX + (this.currentWorld.spawnPoint.x * this.tileSize);
+            spawnY = this.worldOffsetY + (this.currentWorld.spawnPoint.y * this.tileSize);
+            followerX = spawnX - 32;
+            followerY = spawnY;
+          }
+        }
         
         this.createPlayer(spawnX, spawnY);
-        this.createFollower(spawnX - 32, spawnY);
+        this.createFollower(followerX, followerY);
         
         // Restore glows if needed when returning to lava world
-        if (worldKey === 'lavaWorld') {
+        if (worldKey === 'lavaWorld' || worldKey === 'lavaWorldHappy') {
           const gameState = window.getGameState();
           if (gameState && gameState.seenDragon) {
             if (!gameState.missions.blazeBreathingExercise.completed) {
               // Mission incomplete - show Tuli glow
               this.setTuliGlow(true);
               this.dragonSeenTriggered = true; // Set flag so we don't re-trigger detection
-            } else {
-              // Mission completed - show dragon glow instead
+            } else if (worldKey === 'lavaWorld') {
+              // Mission completed and in regular lava world - show dragon glow
+              // (Don't show glow in lavaWorldHappy as dragon is already happy)
               this.time.delayedCall(500, () => {
                 this.enableDragonGlow();
               });
@@ -1154,6 +1233,9 @@ export default function PhaserGame() {
       }
 
       createWorldFromLayers() {
+        // Clear existing tiles array
+        this.worldTiles = [];
+        
         // Create tiles based on layers configuration
         this.currentWorld.layers.forEach((layer, layerIndex) => {
           if (!layer.visible) return;
@@ -1209,9 +1291,81 @@ export default function PhaserGame() {
                 tile.setData('tileIndex', tileIndex);
                 tile.setData('walkable', isTileWalkable(tileIndex, this.currentWorld, layerIndex, x, y));
               }
+              
+              // Store tile sprite for later replacement
+              this.worldTiles.push(tile);
             }
           }
         });
+      }
+
+      swapWorldTiles(newWorldKey) {
+        console.log(`Swapping world tiles from ${this.currentWorldKey} to ${newWorldKey}`);
+        
+        // Destroy all existing world tiles
+        this.worldTiles.forEach(tile => {
+          if (tile && tile.destroy) {
+            tile.destroy();
+          }
+        });
+        this.worldTiles = [];
+        
+        // If swapping to lavaWorldHappy, remove any remaining rocks
+        if (newWorldKey === 'lavaWorldHappy') {
+          this.rocks.forEach(rock => {
+            if (rock && rock.destroy) {
+              rock.destroy();
+            }
+          });
+          this.rocks = [];
+        }
+        
+        // Update world references
+        this.currentWorldKey = newWorldKey;
+        this.currentWorld = getWorld(newWorldKey);
+        
+        // Update global reference
+        window.currentGameWorld = newWorldKey;
+        
+        // Update game state
+        if (window.updateGameState) {
+          window.updateGameState({ currentWorld: newWorldKey });
+        }
+        
+        // Recreate tiles from new world
+        this.createWorldFromLayers();
+        
+        // If swapping to lavaWorldHappy, create decorative rocks around the dragon
+        if (newWorldKey === 'lavaWorldHappy') {
+          this.createDecorativeRocks();
+        }
+        
+        console.log('World tiles swapped successfully!');
+      }
+
+      createDecorativeRocks() {
+        // Rock positions around the happy dragon
+        const rockPositions = [
+          { x: 49, y: 17 },
+          { x: 51, y: 16 },
+          { x: 58, y: 16 },
+          { x: 59, y: 20 },
+        ];
+        
+        rockPositions.forEach((pos) => {
+          const rockX = this.worldOffsetX + (pos.x * this.tileSize);
+          const rockY = this.worldOffsetY + (pos.y * this.tileSize);
+          
+          // Create simple rock sprite without glow or interaction
+          const rock = this.add.image(rockX, rockY, 'rock');
+          rock.setDepth(95);
+          rock.setScale(0.8);
+          
+          // Store in npcs array so it gets cleaned up with world
+          this.npcs.push(rock);
+        });
+        
+        console.log('Created decorative rocks around happy dragon');
       }
 
       worldToGrid(worldX, worldY) {
@@ -1530,7 +1684,7 @@ export default function PhaserGame() {
           }
         }
         
-        const speed = 100; // pixels per second
+        const speed = DEV_CONFIG.doublePlayerSpeed ? 200 : 100; // pixels per second
         const duration = (distToWaypoint / speed) * 1000;
 
         // Move to waypoint
@@ -1900,7 +2054,7 @@ export default function PhaserGame() {
 
   // Reset Tuli glow when leaving lava world (but keep seenDragon true)
   useEffect(() => {
-    if (gameState.currentWorld !== 'lavaWorld' && gameState.tuliGlowing) {
+    if (gameState.currentWorld !== 'lavaWorld' && gameState.currentWorld !== 'lavaWorldHappy' && gameState.tuliGlowing) {
       // Only turn off the glow, don't reset seenDragon (we want to remember they saw the dragon)
       updateGameState({ tuliGlowing: false });
       // Tell Phaser to turn off glow
@@ -1929,7 +2083,15 @@ export default function PhaserGame() {
   const handleTravelToLavaWorld = () => {
     setShowGnomeChat(false);
     if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
-      phaserGameRef.current.scene.scenes[0].transitionToWorld('lavaWorld');
+      // Check mission state to determine which version of lava world to load
+      const breathingCompleted = gameState?.missions?.blazeBreathingExercise?.completed;
+      const rocksCompleted = gameState?.missions?.blazeRockCollection?.completed;
+      
+      // If both missions completed, load happy world; otherwise load regular lava world
+      const worldToLoad = (breathingCompleted && rocksCompleted) ? 'lavaWorldHappy' : 'lavaWorld';
+      
+      console.log('Traveling to lava world:', worldToLoad, { breathingCompleted, rocksCompleted });
+      phaserGameRef.current.scene.scenes[0].transitionToWorld(worldToLoad);
     }
   };
 
@@ -1963,6 +2125,45 @@ export default function PhaserGame() {
           </div>
         </motion.div>
       )}
+      
+      {/* Trophy Display */}
+      <div className="fixed bottom-4 right-4 z-9999 pointer-events-none">
+        <div className="flex gap-2">
+          {/* Trophy 1 - Dragon Rock Collection */}
+          <div 
+            className={`w-16 h-16 rounded-full border-4 flex items-center justify-center transition-all ${
+              gameState.missions?.blazeRockCollection?.talkedToBlaze 
+                ? 'border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-lg shadow-yellow-500/50 pointer-events-auto cursor-pointer hover:scale-110' 
+                : 'border-gray-300/50 bg-gray-100/50'
+            }`}
+            onClick={() => {
+              if (gameState.missions?.blazeRockCollection?.talkedToBlaze) {
+                setShowDragonTrophy(true);
+              }
+            }}
+          >
+            {gameState.missions?.blazeRockCollection?.talkedToBlaze && (
+              <motion.img 
+                src="/spritesheets/dragon-trophy.png" 
+                alt="Dragon Trophy"
+                className="w-12 h-12 object-contain"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              />
+            )}
+          </div>
+          
+          {/* Trophy 2 - Empty */}
+          <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
+          
+          {/* Trophy 3 - Empty */}
+          <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
+          
+          {/* Trophy 4 - Empty */}
+          <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
+        </div>
+      </div>
       
       {/* Loading Screen */}
       {isLoading && (
@@ -2069,6 +2270,16 @@ export default function PhaserGame() {
         />
       )}
       </AnimatePresence>
+      
+      {/* Dragon Trophy Modal */}
+      <AnimatePresence>
+      {showDragonTrophy && (
+        <DragonTrophyModal 
+          onClose={() => setShowDragonTrophy(false)}
+          translations={translations}
+        />
+      )}
+      </AnimatePresence>
     </>
   );
 }
@@ -2161,7 +2372,9 @@ function TuliChatModal({ onClose, language, translations }) {
   const getInitialMessage = () => {
     const currentWorld = window.currentGameWorld || 'tutorial';
     
-    if (currentWorld === 'lavaWorld') {
+    if (currentWorld === 'lavaWorldHappy') {
+      return t.chatLavaWorldHappy || "Wow! 🎉 Look how happy BLAZE is now! You really helped him find his precious rocks. How does that make YOU feel?";
+    } else if (currentWorld === 'lavaWorld') {
       return t.chatLavaWorld || "Hi there! 🔥 Its HOT in here! Have you met BLAZE yet? He seems pretty upset about his rocks. How are YOU feeling?";
     } else {
       return t.chatTutorial || "Hi friend! 🌊 Welcome to the Island of Feelings! The breeze feels nice here, doesn't it? How are you doing today?";
@@ -2790,7 +3003,7 @@ function BreathingExerciseModal({ onClose, onComplete, translations }) {
 
 function MonkeyChatModal({ onClose, translations }) {
   const t = translations?.npcs?.monkey || {
-    greeting: "Hey, I'll be able to take you to the spring dark forest soon, but I'm just out of gas right now.",
+    greeting: "Hey, I'll be able to take you to the enchanted forest soon, but I'm just out of gas right now.",
     close: "Okay"
   };
 
@@ -2970,8 +3183,10 @@ function DragonChatModal({ onClose, translations }) {
     }
     
     if (rockMission.rocksFound < rockMission.totalRocks) {
-      const searchText = tb.searching || "You're doing great! You've found {count} out of {total} rocks. Keep looking around the caves! 🔍";
-      return searchText.replace('{count}', rockMission.rocksFound).replace('{total}', rockMission.totalRocks);
+      // Use different message based on progress
+      const searchingKey = `searching${rockMission.rocksFound}`;
+      const searchText = tb[searchingKey] || tb.searching1 || "You've made some progress! Keep it up! 💪";
+      return searchText;
     }
     
     return tb.complete || "You found ALL my rocks! 🎉 Thank you so much! You're the best friend a dragon could ask for!";
@@ -3053,6 +3268,76 @@ function DragonChatModal({ onClose, translations }) {
         >
           {getButtonText()}
         </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function DragonTrophyModal({ onClose, translations }) {
+  const tb = translations?.blaze || {};
+  
+  return (
+    <motion.div 
+      className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div 
+        className="bg-white rounded-2xl p-8 max-w-md w-[90%] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.8, opacity: 0, y: 50 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: 50 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
+        <div className="flex flex-col items-center text-center">
+          {/* Dragon Avatar */}
+          <motion.div 
+            className="w-32 h-32 bg-contain bg-no-repeat bg-center mb-4"
+            style={{ backgroundImage: 'url(/spritesheets/dragon-happy.png)' }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 150 }}
+          />
+          
+          {/* Trophy Image */}
+          <motion.div 
+            className="w-24 h-24 mb-4 relative"
+            initial={{ scale: 0, rotate: 180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 150 }}
+          >
+            <div className="absolute inset-0 bg-yellow-400/30 rounded-full blur-xl" />
+            <img 
+              src="/spritesheets/dragon-trophy.png" 
+              alt="Dragon Trophy"
+              className="w-full h-full object-contain relative z-10"
+            />
+          </motion.div>
+          
+          {/* Title */}
+          <h3 className="text-2xl font-bold text-yellow-600 mb-3">
+            {tb.trophyTitle || "Token of Calm"}
+          </h3>
+          
+          {/* Description */}
+          <p className="text-gray-700 mb-6 leading-relaxed">
+            {tb.trophyDescription || "Use this as a reminder every day to remember the breathing techniques that BLAZE has taught you."}
+          </p>
+          
+          {/* Close Button */}
+          <motion.button
+            onClick={onClose}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {tb.trophyClose || "Close"}
+          </motion.button>
+        </div>
       </motion.div>
     </motion.div>
   );
