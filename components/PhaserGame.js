@@ -63,6 +63,8 @@ export default function PhaserGame() {
     window.openGnomeChatReturn = () => setShowGnomeChatReturn(true);
     window.openMonkeyChat = () => setShowMonkeyChat(true);
     window.openDragonChat = () => setShowDragonChat(true);
+    window.setActiveMission = setActiveMission;
+    window.updateMission = updateMission;
     window.startWorldTransition = (worldName) => {
       setLoadingText(`Loading ${worldName}...`);
       setIsLoading(true);
@@ -88,8 +90,10 @@ export default function PhaserGame() {
         
         // Check if all rocks found
         if (newRocksFound >= rockMission.totalRocks) {
-          updateMission('blazeRockCollection', { completed: true });
-          setActiveMission(null);
+          updateMission('blazeRockCollection', { completed: true, allRocksFound: true });
+          // Set mission to talk to BLAZE
+          const talkMission = translations?.blaze?.missionTalkToBlaze || 'Talk to BLAZE';
+          setActiveMission(talkMission);
         }
       }
     };
@@ -675,29 +679,35 @@ export default function PhaserGame() {
           if (pointer.leftButtonDown()) {
             this.clickedOnTuli = true;
             
-            // Check rocks collected via GameState
-            const gameState = window.gameState || { rocksCollected: 0 };
+            // Get current game state
+            const gameState = window.getGameState ? window.getGameState() : {};
+            const rockMission = gameState.missions?.blazeRockCollection || {};
             
-            if (gameState.rocksCollected >= 4) {
-              // All rocks found - show thank you and change to happy
+            console.log('Dragon clicked, rockMission:', rockMission, 'dragon.isHappy:', dragon.isHappy);
+            
+            // Check if all rocks collected and haven't talked yet
+            if (rockMission.allRocksFound && !rockMission.talkedToBlaze) {
+              console.log('Changing dragon to happy!');
+              
+              // Change to happy sprite
               dragon.setTexture('dragon-happy');
               dragon.clearTint();
+              dragon.isHappy = true;
               
-              if (window.openDragonChat) {
-                window.openDragonChat();
+              // Mark as talked to
+              if (window.updateMission) {
+                window.updateMission('blazeRockCollection', { talkedToBlaze: true });
               }
               
-              // Clear mission text after modal closes
-              setTimeout(() => {
-                if (window.setMissionText) {
-                  window.setMissionText('');
-                }
-              }, 100);
-            } else {
-              // Not all rocks found yet
-              if (window.openDragonChat) {
-                window.openDragonChat();
+              // Clear mission
+              if (window.setActiveMission) {
+                window.setActiveMission(null);
               }
+            }
+            
+            // Always open chat modal
+            if (window.openDragonChat) {
+              window.openDragonChat();
             }
           }
         });
@@ -1801,7 +1811,7 @@ export default function PhaserGame() {
         noAudio: true, // Disable audio to prevent iOS issues
       },
       fps: {
-        target: 30,
+        target: 45,
         forceSetTimeOut: true,
       },
     };
@@ -1817,6 +1827,8 @@ export default function PhaserGame() {
       window.openDragonChat = null;
       window.openDragonMissionChat = null;
       window.openBreathingExercise = null;
+      window.setActiveMission = null;
+      window.updateMission = null;
       window.startWorldTransition = null;
       window.endWorldTransition = null;
       window.getGameState = null;
@@ -1894,8 +1906,11 @@ export default function PhaserGame() {
     if (rockMission.accepted && !rockMission.completed) {
       const missionText = translations?.blaze?.missionLocateRocks || "Locate BLAZE's rocks ({count}/{total})";
       setActiveMission(missionText.replace('{count}', rockMission.rocksFound).replace('{total}', rockMission.totalRocks));
-    } else if (rockMission.completed) {
-      setActiveMission(null); // Clear mission when complete
+    } else if (rockMission.completed && rockMission.allRocksFound && !rockMission.talkedToBlaze) {
+      // All rocks found, need to talk to BLAZE
+      setActiveMission(translations?.blaze?.missionTalkToBlaze || 'Talk to BLAZE');
+    } else if (rockMission.talkedToBlaze) {
+      setActiveMission(null); // Clear mission after talking to BLAZE
     }
   }, [gameState.missions.blazeRockCollection, setActiveMission]);
 

@@ -64,6 +64,7 @@
     "name": "BLAZE dice:",
     "missionSeeWhat": "Ve qué quiere BLAZE",
     "missionLocateRocks": "Localiza las rocas de BLAZE ({count}/{total})",
+    "missionTalkToBlaze": "Habla con BLAZE",
     "missionInitial": "¡Oye! 😮 ¿Has visto a BLAZE? ¡Se ve muy molesto! ¿Qué crees que podríamos hacer para ayudarlo a calmarse?",
     "angry": "¡Alguien derribó mi colección de rocas que me tomó SEMANAS construir! ¡Estoy tan ENOJADO que podría EXPLOTAR! ¡Todo se siente CALIENTE y quiero RUGIR!",
     "grateful": "¡Muchas gracias por ayudarme a calmarme! 😊 Ese ejercicio de respiración realmente ayudó. ¡Me siento mucho mejor ahora! ¡Eres un gran amigo!",
@@ -97,7 +98,6 @@
   "chat": {
     "placeholder": "Escribe tu mensaje...",
     "send": "Enviar"
-  }
   }
 }
 
