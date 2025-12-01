@@ -9,7 +9,7 @@ import { useUser } from '../contexts/UserContext';
 import { DEV_CONFIG } from '../lib/config';
 
 const ZOOM_FACTOR = 2;
-const CAMERA_BOUNDS_PADDING = 30;
+const CAMERA_BOUNDS_PADDING = 10;
 
 // Sprite sheet tile sizes
 const SPRITE_SHEET_SIZES = {
@@ -3000,10 +3000,12 @@ function MonkeyChatModal({ onClose, translations }) {
     close: "Okay"
   };
 
+  
+
   return (
     <motion.div 
       className="fixed inset-0 bg-black/50 flex justify-center items-center z-10000 pointer-events-auto"
-      onClick={onClose}
+
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
