@@ -134,7 +134,7 @@ export default function WelcomeModal() {
               <div className="flex gap-2 sm:gap-3 mt-2 sm:mt-3">
                 <button 
                   type="submit" 
-                  className="flex-1 px-4 sm:px-8 py-3 sm:py-4 text-base sm:text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
+                  className="opacity-45 pointer-events-none flex-1 px-4 sm:px-8 py-3 sm:py-4 text-base sm:text-xl font-bold border-none rounded-xl bg-linear-to-br from-[#a8ddc0] to-[#9CD3B2] text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:-translate-y-0.5 cursor-pointer"
                 >
                   {t.continueButton}
                 </button>

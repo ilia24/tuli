@@ -2127,23 +2127,15 @@ export default function PhaserGame() {
         </motion.div>
       )}
       
-      {/* Trophy Display */}
-      <div className="fixed bottom-4 right-4 z-9999 pointer-events-none">
-        <div className="flex gap-2">
-          {/* Trophy 1 - Dragon Rock Collection */}
-          <div 
-            className={`w-16 h-16 rounded-full border-4 flex items-center justify-center transition-all ${
-              gameState.missions?.blazeRockCollection?.talkedToBlaze 
-                ? 'border-yellow-500 bg-gradient-to-br from-yellow-100 to-yellow-50 shadow-lg shadow-yellow-500/50 pointer-events-auto cursor-pointer hover:scale-110' 
-                : 'border-gray-300/50 bg-gray-100/50'
-            }`}
-            onClick={() => {
-              if (gameState.missions?.blazeRockCollection?.talkedToBlaze) {
-                setShowDragonTrophy(true);
-              }
-            }}
-          >
-            {gameState.missions?.blazeRockCollection?.talkedToBlaze && (
+      {/* Trophy Display - Only show if user has at least one trophy */}
+      {gameState.missions?.blazeRockCollection?.talkedToBlaze && (
+        <div className="fixed bottom-4 right-4 z-9999 pointer-events-none">
+          <div className="flex gap-2">
+            {/* Trophy 1 - Dragon Rock Collection */}
+            <div 
+              className="w-16 h-16 rounded-full border-4 flex items-center justify-center transition-all border-yellow-500 bg-linear-to-br from-yellow-100 to-yellow-50 shadow-lg shadow-yellow-500/50 pointer-events-auto cursor-pointer hover:scale-110"
+              onClick={() => setShowDragonTrophy(true)}
+            >
               <motion.img 
                 src="/spritesheets/dragon-trophy.png" 
                 alt="Dragon Trophy"
@@ -2152,19 +2144,19 @@ export default function PhaserGame() {
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
               />
-            )}
+            </div>
+            
+            {/* Trophy 2 - Empty */}
+            <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
+            
+            {/* Trophy 3 - Empty */}
+            <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
+            
+            {/* Trophy 4 - Empty */}
+            <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
           </div>
-          
-          {/* Trophy 2 - Empty */}
-          <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
-          
-          {/* Trophy 3 - Empty */}
-          <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
-          
-          {/* Trophy 4 - Empty */}
-          <div className="w-16 h-16 rounded-full border-4 border-gray-300/50 bg-gray-100/50" />
         </div>
-      </div>
+      )}
       
       {/* Loading Screen */}
       {isLoading && (
