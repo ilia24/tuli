@@ -52,7 +52,8 @@
     "monkey": {
       "name": "Mono dice:",
       "greeting": "Oye, podré llevarte al bosque encantado pronto, pero ahora me quedé sin gasolina.",
-      "close": "Okay"
+      "close": "Okay",
+      "signage": "¡Viajes al bosque pronto!"
     },
     "dragon": {
       "name": "Vesuvvy dice:",

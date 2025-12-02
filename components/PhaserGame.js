@@ -112,6 +112,7 @@ export default function PhaserGame() {
     
     // Expose game state to Phaser (using ref to always get current state)
     window.getGameState = () => gameStateRef.current;
+    window.getTranslations = () => translations;
     window.updateGameState = updateGameState;
     window.updateMission = updateMission;
     window.setActiveMission = setActiveMission;
@@ -395,6 +396,9 @@ export default function PhaserGame() {
           this.createNPC(39, 48, 'gnome', 'openGnomeChat');
           // Monkey at (9, 21) - scaled down to half size
           this.createNPC(9, 21, 'monkey', 'openMonkeyChat', 0.5);
+          
+          // Add "Coming Soon" message box above monkey
+          this.createMonkeySignage(9, 21);
         } else if (this.currentWorldKey === 'lavaWorld' || this.currentWorldKey === 'lavaWorldHappy') {
           // BLAZE the Dragon at (54, 17)
           this.createDragon(54, 18);
@@ -406,6 +410,74 @@ export default function PhaserGame() {
             this.createRocks();
           }
         }
+      }
+
+      createMonkeySignage(gridX, gridY) {
+        const monkeyX = this.worldOffsetX + (gridX * this.tileSize);
+        const monkeyY = this.worldOffsetY + (gridY * this.tileSize);
+        
+        // Position the sign above the monkey
+        const signY = monkeyY - 25;
+        
+        // Create background bubble
+        const bubbleWidth = 110;
+        const bubbleHeight = 20;
+        const bubble = this.add.graphics();
+        bubble.fillStyle(0xffffff, 0.7);
+        bubble.fillRoundedRect(
+          monkeyX - bubbleWidth / 2,
+          signY - bubbleHeight / 2,
+          bubbleWidth,
+          bubbleHeight,
+          6
+        );
+        // Add a subtle border
+        bubble.lineStyle(1, 0x8B4513, 0.6);
+        bubble.strokeRoundedRect(
+          monkeyX - bubbleWidth / 2,
+          signY - bubbleHeight / 2,
+          bubbleWidth,
+          bubbleHeight,
+          6
+        );
+        bubble.setDepth(96);
+        
+        // Add small triangle pointer
+        bubble.fillStyle(0xffffff, 0.6);
+        bubble.fillTriangle(
+          monkeyX - 4, signY + bubbleHeight / 2 - 1,
+          monkeyX + 4, signY + bubbleHeight / 2 - 1,
+          monkeyX, signY + bubbleHeight / 2 + 5
+        );
+        bubble.lineStyle(1, 0x8B4513, 0.6);
+        bubble.lineBetween(monkeyX - 4, signY + bubbleHeight / 2 - 1, monkeyX, signY + bubbleHeight / 2 + 5);
+        bubble.lineBetween(monkeyX + 4, signY + bubbleHeight / 2 - 1, monkeyX, signY + bubbleHeight / 2 + 5);
+        
+        // Create text with translation
+        const t = window.getTranslations ? window.getTranslations() : {};
+        const signageText = t?.npcs?.monkey?.signage || 'Forest trips soon!';
+        const signText = this.add.text(monkeyX, signY, signageText, {
+          fontSize: '8px',
+          fontFamily: 'Arial, sans-serif',
+          color: '#2E7D32',
+          fontStyle: 'normal'
+        });
+        signText.setOrigin(0.5);
+        signText.setDepth(97);
+        
+        // Add subtle floating animation
+        this.tweens.add({
+          targets: [bubble, signText],
+          y: '-=2',
+          duration: 1500,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        
+        // Track for cleanup
+        this.npcs.push(bubble);
+        this.npcs.push(signText);
       }
 
       createRocks() {

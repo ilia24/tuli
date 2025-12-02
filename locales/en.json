@@ -52,7 +52,8 @@
     "monkey": {
       "name": "Monkey says:",
       "greeting": "Hey, I'll be able to take you to the enchanted forest soon, but I'm just out of gas right now.",
-      "close": "Okay"
+      "close": "Okay",
+      "signage": "Forest trips soon!"
     },
     "dragon": {
       "name": "Vesuvvy says:",

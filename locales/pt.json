@@ -52,7 +52,8 @@
     "monkey": {
       "name": "Macaco diz:",
       "greeting": "Ei, vou poder te levar para a floresta encantada em breve, mas estou sem gasolina agora.",
-      "close": "Okay"
+      "close": "Okay",
+      "signage": "Viagens à floresta em breve!"
     },
     "dragon": {
       "name": "Vesuvvy diz:",

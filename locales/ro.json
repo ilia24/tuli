@@ -52,7 +52,8 @@
     "monkey": {
       "name": "Maimuța spune:",
       "greeting": "Hei, o să te pot duce la pădurea fermecată în curând, dar acum sunt fără benzină.",
-      "close": "Bine"
+      "close": "Bine",
+      "signage": "Excursii în pădure în curând!"
     },
     "dragon": {
       "name": "Vesuvvy spune:",
