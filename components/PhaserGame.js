@@ -36,6 +36,7 @@ export default function PhaserGame() {
   const [showDragonTrophy, setShowDragonTrophy] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('');
+  const [hideMissionDisplay, setHideMissionDisplay] = useState(false);
   const dragonGlowTimerRef = useRef(null);
   const showDragonMissionChatRef = useRef(false);
   const showBreathingExerciseRef = useRef(false);
@@ -62,7 +63,11 @@ export default function PhaserGame() {
     window.openDragonMissionChat = () => setShowDragonMissionChat(true);
     window.openGnomeChat = () => setShowGnomeChat(true);
     window.openGnomeChatReturn = () => setShowGnomeChatReturn(true);
-    window.openMonkeyChat = () => setShowMonkeyChat(true);
+    // window.openMonkeyChat = () => setShowMonkeyChat(true);
+    window.openMonkeyChat = () => {
+      console.log('openMonkeyChat called');
+      // setShowMonkeyChat(true);
+    };
     window.openDragonChat = () => setShowDragonChat(true);
     window.setActiveMission = setActiveMission;
     window.updateMission = updateMission;
@@ -111,6 +116,7 @@ export default function PhaserGame() {
     window.updateMission = updateMission;
     window.setActiveMission = setActiveMission;
     window.openBreathingExercise = () => setShowBreathingExercise(true);
+    window.setHideMissionDisplay = (shouldHide) => setHideMissionDisplay(shouldHide);
     
     // Helper function to collect a rock
     window.collectRock = () => {
@@ -169,6 +175,7 @@ export default function PhaserGame() {
         this.npcs = []; // NPCs in the world
         this.dragonSeenTriggered = false; // Flag to prevent multiple dragon detection triggers
         this.rocks = []; // Collectible rocks
+        this.lastMissionDisplayState = false; // Track mission display state to avoid unnecessary updates
         this.collectedRockIds = new Set(); // Track which rocks have been collected
         this.worldTiles = []; // Store all tile sprites for easy replacement
       }
@@ -541,28 +548,34 @@ export default function PhaserGame() {
         const npcX = this.worldOffsetX + (gridX * this.tileSize);
         const npcY = this.worldOffsetY + (gridY * this.tileSize);
         
+        let glow
         // Create pulsing glow behind NPC
-        const glow = this.add.circle(npcX, npcY, 20, 0xffdd00, 0.3);
-        glow.setDepth(97);
+        if (spriteKey !== 'monkey') {
+           glow = this.add.circle(npcX, npcY, 20, 0xffdd00, 0.3);
+          glow.setDepth(97);
+          this.tweens.add({
+            targets: glow,
+            scaleX: 1,
+            scaleY: 1,
+            alpha: 0.3,
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+          
+
+        }
         
         // Pulsing animation
-        this.tweens.add({
-          targets: glow,
-          scaleX: 1,
-          scaleY: 1,
-          alpha: 0.3,
-          duration: 1200,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut'
-        });
-        
         const npc = this.add.image(npcX, npcY, spriteKey);
         npc.setScale(scale);
         npc.setDepth(98); // Just below follower
         npc.setInteractive();
-        
-        this.npcs.push(glow); // Track glow for cleanup
+
+        if (spriteKey !== 'monkey') {
+          this.npcs.push(glow); // Track glow for cleanup
+        }
         
         // Hover effect
         npc.on('pointerover', () => {
@@ -1711,6 +1724,18 @@ export default function PhaserGame() {
           if (this.tuliGlow && this.followerSprite) {
             this.tuliGlow.setPosition(this.followerSprite.x, this.followerSprite.y);
           }
+
+          // Check if player is in top 10 tiles of the world to hide mission display
+          if (this.playerSprites && window.setHideMissionDisplay) {
+            const gridPos = this.worldToGrid(this.playerSprites.x, this.playerSprites.y);
+            const shouldHide = gridPos.gridY < 8; // Hide if in top 10 tiles
+            
+            // Only update if state changed to avoid unnecessary renders
+            if (this.lastMissionDisplayState !== shouldHide) {
+              window.setHideMissionDisplay(shouldHide);
+              this.lastMissionDisplayState = shouldHide;
+            }
+          }
         } catch (error) {
           console.error('Update error:', error);
           return; // Skip this frame on error
@@ -2112,7 +2137,11 @@ export default function PhaserGame() {
         <motion.div 
           className="fixed top-2 left-2 z-9999 pointer-events-auto"
           initial={{ x: -300, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
+          animate={{ 
+            x: 0, 
+            y: hideMissionDisplay ? -100 : 0,
+            opacity: hideMissionDisplay ? 0 : 1
+          }}
           exit={{ x: -300, opacity: 0 }}
           transition={{ type: "spring", stiffness: 100, damping: 20 }}
         >
