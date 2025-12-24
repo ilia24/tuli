@@ -1,0 +1,116 @@
+{
+  "welcome": {
+    "title": "Witaj w Tuli!",
+    "firstNameLabel": "Jak masz na imię?",
+    "firstNamePlaceholder": "Imię",
+    "lastNameLabel": "Jakie jest twoje nazwisko?",
+    "lastNamePlaceholder": "Nazwisko",
+    "languageLabel": "Wybierz swój język",
+    "startButton": "Zaczynajmy!",
+    "continueButton": "Kontynuuj",
+    "startNewButton": "Zacznij od nowa"
+  },
+  "languages": {
+    "en": "Angielski",
+    "ro": "Rumuński",
+    "pt": "Portugalski",
+    "es": "Hiszpański",
+    "pl": "Polski"
+  },
+  "common": {
+    "loading": "Ładowanie...",
+    "loadingWorld": "Ładowanie {worldName}...",
+    "error": "Ups! Coś poszło nie tak"
+  },
+  "npcs": {
+    "tuli": {
+      "name": "Tuli mówi:",
+      "chatTitle": "Porozmawiaj z Tuli",
+      "chatSubtitle": "Twój wspierający przyjaciel",
+      "greeting": "Cześć! Jestem Tuli, twój przyjazny przewodnik! Klikaj po świecie, żeby odkrywać i uczyć się nowych rzeczy!",
+      "close": "Dzięki, Tuli!",
+      "welcomeTitle": "Witaj na Wyspie Uczuć!",
+      "welcomeHello": "Cześć! Jestem Tuli, twój wirtualny przyjaciel. 🌟",
+      "welcomeAdventure": "Będę z tobą w tej przygodzie i wielu innych!",
+      "welcomeNavigate": "Poruszanie się:",
+      "welcomeNavigateDesc": "Kliknij gdziekolwiek, żeby przemieszczać się po wyspie",
+      "welcomeTalk": "Porozmawiaj ze mną:",
+      "welcomeTalkDesc": "Kliknij na mnie w dowolnym momencie, żeby porozmawiać lub zadać pytanie",
+      "welcomeMeet": "Poznaj innych:",
+      "welcomeMeetDesc": "Szukaj świecących postaci, żeby z nimi porozmawiać",
+      "welcomeButton": "Odkrywajmy!",
+      "chatLavaWorld": "Cześć! 🔥 Tutaj jest GORĄCO! Poznałeś już BLAZE'a? Wydaje się dość zdenerwowany z powodu swoich kamieni. Jak TY się czujesz?",
+      "chatLavaWorldHappy": "Wow! 🎉 Popatrz, jak szczęśliwy jest teraz BLAZE! Naprawdę pomogłeś mu znaleźć jego cenne kamienie. Jak się z tym czujesz?",
+      "chatTutorial": "Cześć przyjacielu! 🌊 Witaj na Wyspie Uczuć! Bryza tutaj jest przyjemna, prawda? Jak się dzisiaj masz?"
+    },
+    "gnome": {
+      "name": "Maximillion mówi:",
+      "greeting": "Słyszałem, że w dalekich krainach jest smok, który zgubił swoją kolekcję kamieni! Mogę cię tam zabrać, żebyś mu pomógł!",
+      "returnGreeting": "Gotowy wrócić na Wyspę Uczuć? Mogę cię tam zabrać w każdej chwili!",
+      "travel": "Zabierz mnie tam",
+      "notNow": "Nie teraz"
+    },
+    "monkey": {
+      "name": "Małpka mówi:",
+      "greeting": "Hej, wkrótce będę mógł zabrać cię do zaczarowanego lasu, ale teraz nie mam siły.",
+      "close": "Okej",
+      "signage": "Wycieczki do lasu wkrótce!"
+    },
+    "dragon": {
+      "name": "Vesuvvy mówi:",
+      "sad": "Rawr! Zgubiłem moją kolekcję kamieni i nie mogę tego znieść!",
+      "happy": "Dziękuję bardzo! Znalazłeś wszystkie moje cenne kamienie! Jestem taki szczęśliwy!",
+      "rocksProgress": "znalezione",
+      "helpButton": "Pomogę ci je znaleźć!",
+      "thankYouButton": "Nie ma za co, Vesuvvy!"
+    }
+  },
+  "blaze": {
+    "name": "BLAZE mówi:",
+    "chatTitle": "Pomóż BLAZE'owi!",
+    "chatSubtitle": "Misja: Uspokój Smoka",
+    "missionSeeWhat": "Zobacz, czego chce BLAZE",
+    "missionLocateRocks": "Znajdź kamienie BLAZE'a ({count}/{total})",
+    "missionTalkToBlaze": "Porozmawiaj z BLAZE'em",
+    "missionInitial": "Hej! 😮 Widziałeś BLAZE'a? Wygląda na bardzo zdenerwowanego! Jak myślisz, co moglibyśmy zrobić, żeby mu pomóc się uspokoić?",
+    "angry": "Ktoś przewrócił moją kolekcję kamieni, którą budowałem przez TYGODNIE! Jestem tak ZŁY, że mógłbym WYBUCHNĄĆ! Wszystko wydaje się GORĄCE i chcę RYCZEĆ!",
+    "grateful": "Dziękuję bardzo za pomoc w uspokojeniu się! 😊 To ćwiczenie oddechowe naprawdę pomogło. Czuję się o wiele lepiej! Jesteś świetnym przyjacielem!",
+    "askForHelp": "Teraz, gdy jestem spokojny, mogę jasno myśleć! 🤔 Moja cenna kolekcja kamieni jest rozrzucona po całych lawowych jaskiniach. Miałem 4 wyjątkowe kamienie... Możesz mi pomóc je znaleźć? Znaczą dla mnie wszystko!",
+    "searching0": "Daj mi znać, jak je znajdziesz! 🔍",
+    "searching1": "Robisz postępy! Tak trzymaj! 💪",
+    "searching2": "Jesteś w połowie drogi! Świetnie ci idzie! 🌟",
+    "searching3": "Prawie koniec! Jeszcze tylko jeden kamień do znalezienia! 🎯",
+    "complete": "Znalazłeś WSZYSTKIE moje kamienie! 🎉 Dziękuję bardzo! Jesteś najlepszym przyjacielem, jakiego smok mógłby mieć! Oto token spokoju, używaj go mądrze w codziennym życiu!",
+    "helpButton": "Pomóż BLAZE'owi",
+    "thankYouButton": "Nie ma za co, BLAZE! 🐉",
+    "acceptButton": "Pomogę ci znaleźć twoje kamienie!",
+    "searchButton": "Będę szukać dalej!",
+    "happyButton": "Chętnie pomagam! 🐉",
+    "trophyTitle": "Token Spokoju",
+    "trophyDescription": "Używaj tego jako codziennego przypomnienia o technikach oddechowych, których nauczył cię BLAZE.",
+    "trophyClose": "Zamknij"
+  },
+  "breathing": {
+    "startButton": "🌬️ Zacznij ćwiczenie oddechowe z BLAZE'em",
+    "title": "🌋 Oddech Smoka",
+    "intro": "Pomóżmy BLAZE'owi się ochłodzić techniką <strong>Oddechu Smoka</strong>!",
+    "stepInhale": "🌬️ <strong>Wdech</strong> chłodnego powietrza (4 sekundy)",
+    "stepHold": "⏸️ <strong>Zatrzymaj</strong> oddech (4 sekundy)",
+    "stepExhale": "🔥 <strong>Wydech</strong> gorącego powietrza powoli (6 sekund)",
+    "quote": "\"Głębokie oddychanie gasi nasz wewnętrzny ogień złości\"",
+    "startExercise": "Zacznij ćwiczenie oddechowe",
+    "breathCount": "Oddech {current} z {total}",
+    "volcanoHeat": "🌋 Żar Wulkanu",
+    "inhale": "Wdychaj chłodne powietrze...",
+    "hold": "Zatrzymaj oddech...",
+    "exhale": "Wydychaj gorące powietrze powoli...",
+    "completeTitle": "🎉 Niesamowita Robota!",
+    "completeMessage": "Pomogłeś BLAZE'owi się ochłodzić! Wulkan jest teraz spokojny. 🌋✨",
+    "completeButton": "Zakończ ćwiczenie ✓"
+  },
+  "chat": {
+    "placeholder": "Wpisz swoją wiadomość...",
+    "send": "Wyślij"
+  }
+}
+
