@@ -62,7 +62,7 @@ Your personality:
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-chat',
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages,
