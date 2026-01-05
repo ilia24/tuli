@@ -14,7 +14,8 @@ export async function POST(request) {
       'en': 'English',
       'ro': 'Romanian',
       'pt': 'Portuguese',
-      'es': 'Spanish'
+      'es': 'Spanish',
+      'pl': 'Polish'
     };
     const languageName = languageNames[language] || 'English';
     
