@@ -68,7 +68,6 @@ Your personality:
         ...messages,
       ],
       temperature: 0.8,
-      max_tokens: 2000,
     });
 
     const responseText = completion.choices[0].message.content;
