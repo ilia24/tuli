@@ -67,7 +67,7 @@ Your personality:
         { role: 'system', content: systemPrompt },
         ...messages,
       ],
-      temperature: 0.8,
+
     });
 
     const responseText = completion.choices[0].message.content;
